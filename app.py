@@ -13,14 +13,15 @@ ex.setupUi(w)
 w.show()
 
 
-# def handler_psutil():
-#     value = psutil.cpu_percent(interval=None, percpu=True)
-#     ex.textEdit.append(str(value))
-#
-#
-# timer = QtCore.QTimer()
-# timer.timeout.connect(handler_psutil)
-# timer.start(1000)
+def handler_psutil():
+    value = psutil.cpu_percent(interval=None, percpu=True)
+    ex.textEdit.append(str(value))
+    ex.update_cpu_perc(value)
+
+
+timer = QtCore.QTimer()
+timer.timeout.connect(handler_psutil)
+timer.start(1000)
 
 
 sys.exit(app.exec_())
