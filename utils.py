@@ -6,13 +6,11 @@ class CustomProgressBar(QtWidgets.QProgressBar):
     th2 = 80
 
     def __init__(self, parent = None):
-        # super.__init__(parent)
         QtWidgets.QProgressBar.__init__(self, parent)
         self.customPallete = QtGui.QPalette(self.palette())
 
     def setValue(self, value):
         QtGui.QProgressBar.setValue(self, value)
-        # palette = QtGui.QPalette(self.palette())
 
         if value < CustomProgressBar.th1:
             self.customPallete.setColor(QtGui.QPalette.Highlight,
