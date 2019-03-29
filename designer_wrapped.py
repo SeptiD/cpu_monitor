@@ -3,6 +3,7 @@ from designer import Ui_MainWindow
 import pyqtgraph as pg
 import multiprocessing
 import psutil
+import utils
 
 
 class UI_Wrapped(Ui_MainWindow):
@@ -18,7 +19,7 @@ class UI_Wrapped(Ui_MainWindow):
             self.cpu_plots_list.append(temp_plot)
             self.verticalLayout_cpu_plots.addWidget(temp_plot)
 
-            temp_p_bar = QtWidgets.QProgressBar()
+            temp_p_bar = utils.CustomProgressBar()
             self.cpu_p_bars_list.append(temp_p_bar)
             self.verticalLayout_cpu_progress_bars.addWidget(temp_p_bar)
 
