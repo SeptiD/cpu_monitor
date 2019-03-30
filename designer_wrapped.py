@@ -22,7 +22,8 @@ class UI_Wrapped(Ui_MainWindow):
             temp_plot.setYRange(0, 100)
             self.cpu_plots_list.append(temp_plot)
             self.cpu_plots_data_lists.append([])
-            self.cpu_plots_curves_list.append(temp_plot.plot(pen='y'))
+            self.cpu_plots_curves_list.append(
+                temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
             self.verticalLayout_cpu_plots.addWidget(temp_plot)
 
             # setup progress bars
