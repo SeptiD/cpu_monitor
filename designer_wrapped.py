@@ -3,6 +3,16 @@ from designer import Ui_MainWindow
 import pyqtgraph as pg
 import multiprocessing
 import utils
+from time import strftime, time, gmtime
+from datetime import datetime
+
+
+class TimeAxisItem(pg.AxisItem):
+    def __init__(self, *args, **kwargs):
+        super(TimeAxisItem, self).__init__(*args, **kwargs)
+
+    def tickStrings(self, values, scale, spacing):
+        return [datetime.utcfromtimestamp(value).strftime('%M:%S') for value in values]
 
 
 class UI_Wrapped(Ui_MainWindow):
@@ -14,11 +24,12 @@ class UI_Wrapped(Ui_MainWindow):
         self.cpu_plots_data_lists = []
         self.cpu_plots_curves_list = []
         self.cpu_plots_max_seconds = 10
+        self.cpu_plots_X_values = []
 
         # setup cpu related
         for cpu in range(multiprocessing.cpu_count()):
             # setup real-time plots
-            temp_plot = pg.PlotWidget()
+            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
             temp_plot.setYRange(0, 100)
             temp_plot.setXRange(0, 60)
             self.cpu_plots_list.append(temp_plot)
@@ -56,7 +67,8 @@ class UI_Wrapped(Ui_MainWindow):
                 self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
 
     def update_cpu_perc_plots(self, cpu_perc_list):
+        self.cpu_plots_X_values.insert(0, time())
         for cpu_index in range(len(cpu_perc_list)):
             self.cpu_plots_data_lists[cpu_index].insert(0, cpu_perc_list[cpu_index])
 
-            self.cpu_plots_curves_list[cpu_index].setData(self.cpu_plots_data_lists[cpu_index])
+            self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
