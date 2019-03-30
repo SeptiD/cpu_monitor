@@ -16,7 +16,8 @@ w.show()
 def handler_psutil():
     value = psutil.cpu_percent(interval=None, percpu=True)
     ex.textEdit.append(str(value))
-    ex.update_cpu_perc(value)
+    ex.update_cpu_perc_p_bars(value)
+    ex.update_cpu_perc_plots(value)
 
 
 timer = QtCore.QTimer()
