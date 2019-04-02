@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1537</width>
-    <height>907</height>
+    <width>1547</width>
+    <height>918</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -103,6 +103,33 @@
      <layout class="QVBoxLayout" name="verticalLayout_cpu_progress_bars"/>
     </widget>
    </widget>
+   <widget class="QFrame" name="frame_cpu_extra_info">
+    <property name="geometry">
+     <rect>
+      <x>119</x>
+      <y>9</y>
+      <width>1411</width>
+      <height>851</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QWidget" name="verticalLayoutWidget_4">
+     <property name="geometry">
+      <rect>
+       <x>-1</x>
+       <y>9</y>
+       <width>1411</width>
+       <height>841</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_cpu_extra_info"/>
+    </widget>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menuBar">
@@ -110,7 +137,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1537</width>
+     <width>1547</width>
      <height>20</height>
     </rect>
    </property>

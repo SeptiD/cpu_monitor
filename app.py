@@ -17,6 +17,8 @@ def handler_psutil():
     ex.textEdit.append(str(value))
     ex.update_cpu_perc_p_bars(value)
     ex.update_cpu_perc_plots(value)
+    value2 = psutil.cpu_stats()
+    ex.update_cpu_extra_info(value2)
 
 
 timer = QtCore.QTimer()
