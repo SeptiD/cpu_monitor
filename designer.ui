@@ -25,6 +25,9 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_options">
      <item>
+      <widget class="QComboBox" name="comboBox_system_info"/>
+     </item>
+     <item>
       <widget class="QPushButton" name="button_cpu_views">
        <property name="text">
         <string>BARS</string>

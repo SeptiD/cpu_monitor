@@ -16,9 +16,10 @@ class TimeAxisItem(pg.AxisItem):
 
 
 class UI_Wrapped(Ui_MainWindow):
+    combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
+
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)
-        self.frame_progress_bars.hide()
         self.cpu_plots_list = []
         self.cpu_p_bars_list = []
         self.cpu_plots_data_lists = []
@@ -26,6 +27,11 @@ class UI_Wrapped(Ui_MainWindow):
         self.cpu_plots_max_seconds = 10
         self.cpu_plots_X_values = []
 
+        self.setup_combobox_system_info()
+        self.setup_cpu_percentage()
+
+    def setup_cpu_percentage(self):
+        self.frame_progress_bars.hide()
         # setup cpu related
         for cpu in range(multiprocessing.cpu_count()):
             # setup real-time plots
@@ -44,6 +50,13 @@ class UI_Wrapped(Ui_MainWindow):
             self.verticalLayout_cpu_progress_bars.addWidget(temp_p_bar)
 
         self.button_cpu_views.clicked.connect(self.cpu_views_button_pushed)
+
+    def setup_combobox_system_info(self):
+        self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
+        self.comboBox_system_info.activated[str].connect(self.comboBox_system_info_selected)
+
+    def comboBox_system_info_selected(self, combo_text):
+        self.textEdit.append(combo_text)
 
     def cpu_views_button_pushed(self):
         if self.frame_cpu_plots.isHidden():
