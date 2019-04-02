@@ -5,6 +5,7 @@ import multiprocessing
 import utils
 from time import strftime, time, gmtime
 from datetime import datetime
+import psutil
 
 
 class TimeAxisItem(pg.AxisItem):
@@ -18,6 +19,8 @@ class TimeAxisItem(pg.AxisItem):
 class CPU_Extra_Info:
     def __init__(self):
         self.info_list = []
+        self.p_bar_battery = utils.CustomProgressBar()
+        self.info_list.append(self.p_bar_battery)
         self.label_ctx_switches = QtWidgets.QLabel("Context Switches:")
         self.info_list.append(self.label_ctx_switches)
         self.label_interrupts = QtWidgets.QLabel("Interrupts:")
@@ -25,10 +28,21 @@ class CPU_Extra_Info:
         self.label_soft_interrupts = QtWidgets.QLabel("Soft Interrupts:")
         self.info_list.append(self.label_soft_interrupts)
 
-    def change_info(self, info_touple):
+        self.just_temperature_list = []
+        for cpu in range(psutil.cpu_count(logical=False)):
+            temp_p_bar_temperature = utils.CustomProgressBar()
+            self.info_list.append(temp_p_bar_temperature)
+            self.just_temperature_list.append(temp_p_bar_temperature)
+
+    def change_info(self, info_touple, temperature_tuples, battery_tuple):
         self.label_ctx_switches.setText("Context Switches:" + str(info_touple.ctx_switches))
         self.label_interrupts.setText("Interrupts:" + str(info_touple.interrupts))
         self.label_soft_interrupts.setText("Software Interrupts:" + str(info_touple.soft_interrupts))
+
+        self.p_bar_battery.setValue(battery_tuple.percent)
+        temperature_tuples.pop(0)
+        for index in range(len(temperature_tuples)):
+            self.just_temperature_list[index].setValue(temperature_tuples[index].current)
 
 
 class UI_Wrapped(Ui_MainWindow):
@@ -47,8 +61,11 @@ class UI_Wrapped(Ui_MainWindow):
 
         self.gather_frames()
         self.setup_combobox_system_info()
-        self.setup_cpu_percentage()
         self.setup_cpu_extra_percentages()
+        self.setup_cpu_percentage()
+
+        self.show_frame(self.frame_cpu_plots)
+
 
     def gather_frames(self):
         self.gathered_frames.append(self.frame_cpu_plots)
@@ -123,5 +140,5 @@ class UI_Wrapped(Ui_MainWindow):
 
             self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
 
-    def update_cpu_extra_info(self, info_tuple):
-        self.cpu_e_i.change_info(info_tuple)
+    def update_cpu_extra_info(self, info_tuple, temperature_tuples, battery_tuple):
+        self.cpu_e_i.change_info(info_tuple, temperature_tuples, battery_tuple)

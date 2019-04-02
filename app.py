@@ -18,7 +18,9 @@ def handler_psutil():
     ex.update_cpu_perc_p_bars(value)
     ex.update_cpu_perc_plots(value)
     value2 = psutil.cpu_stats()
-    ex.update_cpu_extra_info(value2)
+    value_temperature = psutil.sensors_temperatures()['coretemp']
+    value_battery = psutil.sensors_battery()
+    ex.update_cpu_extra_info(value2, value_temperature, value_battery)
 
 
 timer = QtCore.QTimer()
