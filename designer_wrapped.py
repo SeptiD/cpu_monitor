@@ -50,25 +50,42 @@ class Memory_Info:
         self.info_list = []
         self.disk_partitions = []
         self.p_bar_diskspace = QtWidgets.QProgressBar()
+        self.label_disk_usage = QtWidgets.QLabel()
 
-        self.p_bar_diskspace.setValue(int(psutil.disk_usage('/').percent))
+        self.set_disk_usage()
 
         self.textEdit_partitions = QtWidgets.QTextEdit()
         self.textEdit_partitions.setReadOnly(True)
         for elem in psutil.disk_partitions():
-            self.disk_partitions.append(str(elem))
-            self.textEdit_partitions.append(str(elem) + '\n')
+            # example:
+            # sdiskpart(device='/dev/sda1', mountpoint='/', fstype='ext4',
+            # opts='rw,relatime,errors=remount-ro,stripe=32750,data=ordered')
+            temp_elem = str(elem)
+            temp_elem = temp_elem[temp_elem.find('('):-1]
+            self.disk_partitions.append(temp_elem)
+            self.textEdit_partitions.append(temp_elem)
 
-    def change_info(self, disk_partitions_info):
-        # if len(self.disk_partitions) is 0:
-        #     for partition in disk_partitions_info:
-        #         self.disk_partitions.append(QtWidgets.QLabel(str(partition)))
-        # else:
-        #     for index in range(len(self.disk_partitions)):
-        #         self.disk_partitions[index].setText(str(disk_partitions_info[index]))
-        #
-        # self.info_list = self.disk_partitions
-        pass
+    def change_info(self):
+        self.set_disk_usage()
+
+        for elem in psutil.disk_partitions():
+            # example:
+            # sdiskpart(device='/dev/sda1', mountpoint='/', fstype='ext4',
+            # opts='rw,relatime,errors=remount-ro,stripe=32750,data=ordered')
+            new_partiton = str(elem)
+            new_partiton = new_partiton[new_partiton.find('('):-1]
+            if new_partiton not in self.disk_partitions:
+                self.disk_partitions.append(new_partiton)
+                self.textEdit_partitions.append(new_partiton)
+
+    def set_disk_usage(self):
+        current_disk_usage = psutil.disk_usage('/')
+        total, used, free, percent = current_disk_usage
+        self.p_bar_diskspace.setValue(int(percent))
+        self.label_disk_usage.setText(
+            'Disk usage: total=' + str(round(total / (1024 * 1024))) + ' GB' +
+            '   used=' + str(round(used / (1024 * 1024))) + ' GB' +
+            '   free=' + str(round(free / (1024 * 1024))) + ' GB')
 
 
 class UI_Wrapped(Ui_MainWindow):
@@ -133,6 +150,7 @@ class UI_Wrapped(Ui_MainWindow):
 
     def setup_memory_info(self):
         self.verticalLayout_memory_info.addWidget(self.mem_info.textEdit_partitions)
+        self.verticalLayout_memory_info.addWidget(self.mem_info.label_disk_usage)
         self.verticalLayout_memory_info.addWidget(self.mem_info.p_bar_diskspace)
 
     def setup_combobox_system_info(self):
@@ -177,7 +195,5 @@ class UI_Wrapped(Ui_MainWindow):
     def update_cpu_extra_info(self, info_tuple, temperature_tuples, battery_tuple):
         self.cpu_e_i.change_info(info_tuple, temperature_tuples, battery_tuple)
 
-    def update_memory_info(self, info_tuple):
-        self.mem_info.change_info(info_tuple)
-        for elem in self.mem_info.info_list:
-            self.verticalLayout_memory_info.addWidget(elem)
+    def update_memory_info(self):
+        self.mem_info.change_info()
