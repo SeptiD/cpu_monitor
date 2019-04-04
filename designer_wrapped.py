@@ -45,6 +45,32 @@ class CPU_Extra_Info:
             self.just_temperature_list[index].setValue(temperature_tuples[index].current)
 
 
+class Memory_Info:
+    def __init__(self):
+        self.info_list = []
+        self.disk_partitions = []
+        self.p_bar_diskspace = QtWidgets.QProgressBar()
+
+        self.p_bar_diskspace.setValue(int(psutil.disk_usage('/').percent))
+
+        self.textEdit_partitions = QtWidgets.QTextEdit()
+        self.textEdit_partitions.setReadOnly(True)
+        for elem in psutil.disk_partitions():
+            self.disk_partitions.append(str(elem))
+            self.textEdit_partitions.append(str(elem) + '\n')
+
+    def change_info(self, disk_partitions_info):
+        # if len(self.disk_partitions) is 0:
+        #     for partition in disk_partitions_info:
+        #         self.disk_partitions.append(QtWidgets.QLabel(str(partition)))
+        # else:
+        #     for index in range(len(self.disk_partitions)):
+        #         self.disk_partitions[index].setText(str(disk_partitions_info[index]))
+        #
+        # self.info_list = self.disk_partitions
+        pass
+
+
 class UI_Wrapped(Ui_MainWindow):
     combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
 
@@ -58,19 +84,21 @@ class UI_Wrapped(Ui_MainWindow):
         self.cpu_plots_max_seconds = 10
         self.cpu_plots_X_values = []
         self.cpu_e_i = CPU_Extra_Info()
+        self.mem_info = Memory_Info()
 
         self.gather_frames()
         self.setup_combobox_system_info()
         self.setup_cpu_extra_percentages()
         self.setup_cpu_percentage()
+        self.setup_memory_info()
 
         self.show_frame(self.frame_cpu_plots)
-
 
     def gather_frames(self):
         self.gathered_frames.append(self.frame_cpu_plots)
         self.gathered_frames.append(self.frame_progress_bars)
         self.gathered_frames.append(self.frame_cpu_extra_info)
+        self.gathered_frames.append(self.frame_memory_info)
 
     def show_frame(self, frame_to_show):
         for temp_frame in self.gathered_frames:
@@ -103,6 +131,10 @@ class UI_Wrapped(Ui_MainWindow):
         for elem in self.cpu_e_i.info_list:
             self.verticalLayout_cpu_extra_info.addWidget(elem)
 
+    def setup_memory_info(self):
+        self.verticalLayout_memory_info.addWidget(self.mem_info.textEdit_partitions)
+        self.verticalLayout_memory_info.addWidget(self.mem_info.p_bar_diskspace)
+
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
         self.comboBox_system_info.activated[str].connect(self.combobox_system_info_selected)
@@ -113,6 +145,8 @@ class UI_Wrapped(Ui_MainWindow):
             self.show_frame(self.frame_cpu_plots)
         elif combo_text == 'CPU INFO':
             self.show_frame(self.frame_cpu_extra_info)
+        elif combo_text == 'MEMORY':
+            self.show_frame(self.frame_memory_info)
 
     def cpu_views_button_pushed(self):
         if self.button_cpu_views.text() == 'PLOTS':
@@ -142,3 +176,8 @@ class UI_Wrapped(Ui_MainWindow):
 
     def update_cpu_extra_info(self, info_tuple, temperature_tuples, battery_tuple):
         self.cpu_e_i.change_info(info_tuple, temperature_tuples, battery_tuple)
+
+    def update_memory_info(self, info_tuple):
+        self.mem_info.change_info(info_tuple)
+        for elem in self.mem_info.info_list:
+            self.verticalLayout_memory_info.addWidget(elem)

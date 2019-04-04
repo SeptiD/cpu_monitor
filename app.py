@@ -21,7 +21,9 @@ def handler_psutil():
     value_temperature = psutil.sensors_temperatures()['coretemp']
     value_battery = psutil.sensors_battery()
     ex.update_cpu_extra_info(value2, value_temperature, value_battery)
-
+    value_disks = psutil.disk_partitions()
+    # ex.update_memory_info(value_disks)
+    print(str(value_disks))
 
 timer = QtCore.QTimer()
 timer.timeout.connect(handler_psutil)
