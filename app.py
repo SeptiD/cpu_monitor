@@ -22,6 +22,7 @@ def handler_psutil():
     value_battery = psutil.sensors_battery()
     ex.update_cpu_extra_info(value2, value_temperature, value_battery)
     ex.update_memory_info()
+    ex.update_net_info()
 
 timer = QtCore.QTimer()
 timer.timeout.connect(handler_psutil)

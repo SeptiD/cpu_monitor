@@ -83,9 +83,74 @@ class Memory_Info:
         total, used, free, percent = current_disk_usage
         self.p_bar_diskspace.setValue(int(percent))
         self.label_disk_usage.setText(
-            'Disk usage: total=' + str(round(total / (1024 * 1024))) + ' GB' +
-            '   used=' + str(round(used / (1024 * 1024))) + ' GB' +
-            '   free=' + str(round(free / (1024 * 1024))) + ' GB')
+            'Disk usage: total=' + str(round(total / (1024 * 1024 * 1024), 2)) + ' GB' +
+            '   used=' + str(round(used / (1024 * 1024 * 1024), 2)) + ' GB' +
+            '   free=' + str(round(free / (1024 * 1024 * 1024), 2)) + ' GB')
+
+
+class Network_Info:
+    def __init__(self):
+        self.info_list = []
+        self.net_io_counters = {}
+
+        self.textEdit_net_connections = QtWidgets.QTextEdit()
+        self.textEdit_net_connections.setReadOnly(True)
+
+        self.textEdit_net_io_counters = QtWidgets.QTextEdit()
+        self.textEdit_net_io_counters.setReadOnly(True)
+
+        self.set_net_connections()
+        self.set_net_io_counters()
+
+    def change_info(self):
+        self.set_net_connections()
+        self.set_net_io_counters()
+
+    def set_net_connections(self):
+        self.textEdit_net_connections.clear()
+
+        for elem in psutil.net_connections():
+            # example:
+            # sconn(fd=97, family=<AddressFamily.AF_INET: 2>, type=<SocketKind.SOCK_STREAM: 1>,
+            # laddr=addr(ip='0.0.0.0', port=57621), raddr=(), status='LISTEN', pid=13056)
+            temp_elem = str(elem)
+            temp_elem = temp_elem[temp_elem.find('('):-1]
+            self.textEdit_net_connections.append(temp_elem)
+
+    def set_net_io_counters(self):
+        actual_net_io_counters = psutil.net_io_counters(pernic=True)
+        for key in actual_net_io_counters:
+            if key in self.net_io_counters:
+                one_net_info = {'Bytes sent': actual_net_io_counters[key].bytes_sent,
+                                'Bytes received': actual_net_io_counters[key].bytes_recv,
+                                'Packets sent': actual_net_io_counters[key].packets_sent,
+                                'Packets received': actual_net_io_counters[key].packets_recv,
+                                'MB sent per sec':
+                                    (actual_net_io_counters[key].bytes_sent -
+                                     self.net_io_counters[key]['MB sent per sec']) / (float)(
+                                        8 * 1024 * 1024),
+                                'MB recv per sec':
+                                    (actual_net_io_counters[key].bytes_recv -
+                                     self.net_io_counters[key]['MB recv per sec']) / (float)(
+                                        8 * 1024 * 1024)}
+                self.net_io_counters[key] = one_net_info
+
+
+            else:
+                one_net_info = {'Bytes sent': actual_net_io_counters[key].bytes_sent,
+                                'Bytes received': actual_net_io_counters[key].bytes_recv,
+                                'Packets sent': actual_net_io_counters[key].packets_sent,
+                                'Packets received': actual_net_io_counters[key].packets_recv,
+                                'MB sent per sec': 0,
+                                'MB recv per sec': 0}
+                self.net_io_counters[key] = one_net_info
+
+        self.textEdit_net_io_counters.clear()
+
+        for net, net_info in self.net_io_counters.items():
+            self.textEdit_net_io_counters.append(net + '\n')
+            for key, value in net_info.items():
+                self.textEdit_net_io_counters.append(key + ':' + str(value) + '  ')
 
 
 class UI_Wrapped(Ui_MainWindow):
@@ -102,12 +167,14 @@ class UI_Wrapped(Ui_MainWindow):
         self.cpu_plots_X_values = []
         self.cpu_e_i = CPU_Extra_Info()
         self.mem_info = Memory_Info()
+        self.net_info = Network_Info()
 
         self.gather_frames()
         self.setup_combobox_system_info()
         self.setup_cpu_extra_percentages()
         self.setup_cpu_percentage()
         self.setup_memory_info()
+        self.setup_net_info()
 
         self.show_frame(self.frame_cpu_plots)
 
@@ -116,6 +183,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.gathered_frames.append(self.frame_progress_bars)
         self.gathered_frames.append(self.frame_cpu_extra_info)
         self.gathered_frames.append(self.frame_memory_info)
+        self.gathered_frames.append(self.frame_network_info)
 
     def show_frame(self, frame_to_show):
         for temp_frame in self.gathered_frames:
@@ -153,6 +221,10 @@ class UI_Wrapped(Ui_MainWindow):
         self.verticalLayout_memory_info.addWidget(self.mem_info.label_disk_usage)
         self.verticalLayout_memory_info.addWidget(self.mem_info.p_bar_diskspace)
 
+    def setup_net_info(self):
+        self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_connections)
+        self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_io_counters)
+
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
         self.comboBox_system_info.activated[str].connect(self.combobox_system_info_selected)
@@ -165,6 +237,8 @@ class UI_Wrapped(Ui_MainWindow):
             self.show_frame(self.frame_cpu_extra_info)
         elif combo_text == 'MEMORY':
             self.show_frame(self.frame_memory_info)
+        elif combo_text == 'NETWORK':
+            self.show_frame(self.frame_network_info)
 
     def cpu_views_button_pushed(self):
         if self.button_cpu_views.text() == 'PLOTS':
@@ -197,3 +271,6 @@ class UI_Wrapped(Ui_MainWindow):
 
     def update_memory_info(self):
         self.mem_info.change_info()
+
+    def update_net_info(self):
+        self.net_info.change_info()
