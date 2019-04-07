@@ -153,6 +153,28 @@ class Network_Info:
                 self.textEdit_net_io_counters.append(key + ':' + str(value) + '  ')
 
 
+class Processes_Info:
+    nr_of_cpues = psutil.cpu_count()
+
+    def __init__(self):
+        self.header_labels = ['pid', 'ppid', 'username', 'exe', 'create_time', 'status', 'num_threads', 'cpu_percent',
+                              'cpu_num', 'memory_info']
+        self.treeview_processes_info = QtWidgets.QTreeWidget()
+        self.treeview_processes_info.setHeaderLabels(self.header_labels)
+        self.get_data()
+
+    def get_data(self):
+        for proc in psutil.process_iter(attrs=self.header_labels):
+            proc_dict = proc.info
+            proc_dict['cpu_percent'] = proc_dict['cpu_percent'] / Processes_Info.nr_of_cpues
+            proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
+            temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
+            QtWidgets.QTreeWidgetItem(self.treeview_processes_info, temp_list)
+
+    def change_info(self):
+        pass
+
+
 class UI_Wrapped(Ui_MainWindow):
     combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
 
@@ -168,6 +190,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.cpu_e_i = CPU_Extra_Info()
         self.mem_info = Memory_Info()
         self.net_info = Network_Info()
+        self.proc_info = Processes_Info()
 
         self.gather_frames()
         self.setup_combobox_system_info()
@@ -175,6 +198,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.setup_cpu_percentage()
         self.setup_memory_info()
         self.setup_net_info()
+        self.setup_processes_info()
 
         self.show_frame(self.frame_cpu_plots)
 
@@ -184,6 +208,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.gathered_frames.append(self.frame_cpu_extra_info)
         self.gathered_frames.append(self.frame_memory_info)
         self.gathered_frames.append(self.frame_network_info)
+        self.gathered_frames.append(self.frame_processes_info)
 
     def show_frame(self, frame_to_show):
         for temp_frame in self.gathered_frames:
@@ -225,6 +250,9 @@ class UI_Wrapped(Ui_MainWindow):
         self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_connections)
         self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_io_counters)
 
+    def setup_processes_info(self):
+        self.verticalLayout_processes_info.addWidget(self.proc_info.treeview_processes_info)
+
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
         self.comboBox_system_info.activated[str].connect(self.combobox_system_info_selected)
@@ -239,6 +267,8 @@ class UI_Wrapped(Ui_MainWindow):
             self.show_frame(self.frame_memory_info)
         elif combo_text == 'NETWORK':
             self.show_frame(self.frame_network_info)
+        elif combo_text == 'PROCESSES':
+            self.show_frame(self.frame_processes_info)
 
     def cpu_views_button_pushed(self):
         if self.button_cpu_views.text() == 'PLOTS':

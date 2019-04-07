@@ -188,6 +188,33 @@
      <layout class="QVBoxLayout" name="verticalLayout_network_info"/>
     </widget>
    </widget>
+   <widget class="QFrame" name="frame_processes_info">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>9</y>
+      <width>931</width>
+      <height>511</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QWidget" name="verticalLayoutWidget_7">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>-1</y>
+       <width>931</width>
+       <height>511</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_processes_info"/>
+    </widget>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menuBar">
