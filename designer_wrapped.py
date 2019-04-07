@@ -55,7 +55,6 @@ class Memory_Info:
         self.p_bar_diskspace = QtWidgets.QProgressBar()
         self.label_disk_usage = QtWidgets.QLabel()
 
-
         self.treeview_disk_part_info = QtWidgets.QTreeWidget()
         self.treeview_disk_part_info.setHeaderLabels(self.header_labels)
 
@@ -104,16 +103,18 @@ class Memory_Info:
 class Network_Info:
     def __init__(self):
         self.info_list = []
-        self.net_io_counters = {}
 
         self.textEdit_net_connections = QtWidgets.QTextEdit()
         self.textEdit_net_connections.setReadOnly(True)
 
-        self.textEdit_net_io_counters = QtWidgets.QTextEdit()
-        self.textEdit_net_io_counters.setReadOnly(True)
+        self.net_io_headers = ['Network Interface', 'Bytes sent', 'Bytes received', 'Packets sent', 'Packets sent',
+                               'MB sent/sec', 'MB rev/ sec']
+        self.net_io_rows = {}
+        self.treeview_net_io_info = QtWidgets.QTreeWidget()
+        self.treeview_net_io_info.setHeaderLabels(self.net_io_headers)
+        self.treeview_net_io_info.setSortingEnabled(True)
 
-        self.set_net_connections()
-        self.set_net_io_counters()
+        self.change_info()
 
     def change_info(self):
         self.set_net_connections()
@@ -131,38 +132,53 @@ class Network_Info:
             self.textEdit_net_connections.append(temp_elem)
 
     def set_net_io_counters(self):
+        now_net_io_counters = set()
         actual_net_io_counters = psutil.net_io_counters(pernic=True)
-        for key in actual_net_io_counters:
-            if key in self.net_io_counters:
-                one_net_info = {'Bytes sent': actual_net_io_counters[key].bytes_sent,
-                                'Bytes received': actual_net_io_counters[key].bytes_recv,
-                                'Packets sent': actual_net_io_counters[key].packets_sent,
-                                'Packets received': actual_net_io_counters[key].packets_recv,
-                                'MB sent per sec':
-                                    (actual_net_io_counters[key].bytes_sent -
-                                     self.net_io_counters[key]['MB sent per sec']) / (float)(
-                                        8 * 1024 * 1024),
-                                'MB recv per sec':
-                                    (actual_net_io_counters[key].bytes_recv -
-                                     self.net_io_counters[key]['MB recv per sec']) / (float)(
-                                        8 * 1024 * 1024)}
-                self.net_io_counters[key] = one_net_info
+        for key, value in actual_net_io_counters.items():
+            if key in self.net_io_rows:
+                one_net_info = [key,
+                                str(actual_net_io_counters[key].bytes_sent),
+                                str(actual_net_io_counters[key].bytes_recv),
+                                str(actual_net_io_counters[key].packets_sent),
+                                str(actual_net_io_counters[key].packets_recv),
+
+                                str(actual_net_io_counters[key].bytes_sent -
+                                    int(self.net_io_rows[key].text(1)) / (float)(
+                                    8 * 1024 * 1024)),
+
+                                str((actual_net_io_counters[key].bytes_recv -
+                                     int(self.net_io_rows[key].text(2))) / (float)(
+                                    8 * 1024 * 1024))]
+
+                temp_net_io_row = self.net_io_rows[key]
+                for idx in range(len(one_net_info)):
+                    temp_net_io_row.setText(idx, one_net_info[idx])
+
+                now_net_io_counters.add(key)
 
             else:
-                one_net_info = {'Bytes sent': actual_net_io_counters[key].bytes_sent,
-                                'Bytes received': actual_net_io_counters[key].bytes_recv,
-                                'Packets sent': actual_net_io_counters[key].packets_sent,
-                                'Packets received': actual_net_io_counters[key].packets_recv,
-                                'MB sent per sec': 0,
-                                'MB recv per sec': 0}
-                self.net_io_counters[key] = one_net_info
+                one_net_info = []
+                one_net_info.append(key),
+                one_net_info.append(str(actual_net_io_counters[key].bytes_sent))
+                one_net_info.append(str(actual_net_io_counters[key].bytes_recv))
+                one_net_info.append(str(actual_net_io_counters[key].packets_sent))
+                one_net_info.append(str(actual_net_io_counters[key].packets_recv))
+                one_net_info.append('0')
+                one_net_info.append('0')
 
-        self.textEdit_net_io_counters.clear()
+                temp_widget_item = QtWidgets.QTreeWidgetItem(self.treeview_net_io_info, one_net_info)
+                self.net_io_rows[key] = temp_widget_item
 
-        for net, net_info in self.net_io_counters.items():
-            self.textEdit_net_io_counters.append(net + '\n')
-            for key, value in net_info.items():
-                self.textEdit_net_io_counters.append(key + ':' + str(value) + '  ')
+                now_net_io_counters.add(key)
+
+        # check for networks no longer available
+        for key, current in self.net_io_rows.items():
+            if key not in now_net_io_counters:
+                if current.parent() is not None:
+                    current.parent().removeChild(current)
+                else:
+                    self.treeview_net_io_info.takeTopLevelItem(
+                        self.treeview_net_io_info.indexOfTopLevelItem(current))
 
 
 class Processes_Info:
@@ -278,7 +294,7 @@ class UI_Wrapped(Ui_MainWindow):
 
     def setup_net_info(self):
         self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_connections)
-        self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_io_counters)
+        self.verticalLayout_network_info.addWidget(self.net_info.treeview_net_io_info)
 
     def setup_processes_info(self):
         self.verticalLayout_processes_info.addWidget(self.proc_info.treeview_processes_info)
