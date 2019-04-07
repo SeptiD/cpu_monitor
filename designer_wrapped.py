@@ -47,36 +47,49 @@ class CPU_Extra_Info:
 
 class Memory_Info:
     def __init__(self):
+        self.header_labels = ['device', 'mountpoint', 'fstype', 'opts']
         self.info_list = []
         self.disk_partitions = []
+        self.disk_rows = {}
+
         self.p_bar_diskspace = QtWidgets.QProgressBar()
         self.label_disk_usage = QtWidgets.QLabel()
 
-        self.set_disk_usage()
 
-        self.textEdit_partitions = QtWidgets.QTextEdit()
-        self.textEdit_partitions.setReadOnly(True)
-        for elem in psutil.disk_partitions():
-            # example:
-            # sdiskpart(device='/dev/sda1', mountpoint='/', fstype='ext4',
-            # opts='rw,relatime,errors=remount-ro,stripe=32750,data=ordered')
-            temp_elem = str(elem)
-            temp_elem = temp_elem[temp_elem.find('('):-1]
-            self.disk_partitions.append(temp_elem)
-            self.textEdit_partitions.append(temp_elem)
+        self.treeview_disk_part_info = QtWidgets.QTreeWidget()
+        self.treeview_disk_part_info.setHeaderLabels(self.header_labels)
+
+        self.change_info()
 
     def change_info(self):
         self.set_disk_usage()
 
+        now_disks = set()
         for elem in psutil.disk_partitions():
             # example:
             # sdiskpart(device='/dev/sda1', mountpoint='/', fstype='ext4',
             # opts='rw,relatime,errors=remount-ro,stripe=32750,data=ordered')
-            new_partiton = str(elem)
-            new_partiton = new_partiton[new_partiton.find('('):-1]
-            if new_partiton not in self.disk_partitions:
-                self.disk_partitions.append(new_partiton)
-                self.textEdit_partitions.append(new_partiton)
+
+            new_partition = elem._asdict()
+            temp_list = [str(new_partition[elem]) if elem in new_partition else '' for elem in self.header_labels]
+
+            if new_partition['device'] not in self.disk_rows.keys():
+                temp_widget_item = QtWidgets.QTreeWidgetItem(self.treeview_disk_part_info, temp_list)
+                self.disk_rows[new_partition['device']] = temp_widget_item
+            else:
+                temp_widget_item = self.disk_rows[new_partition['device']]
+                for idx in range(len(temp_list)):
+                    temp_widget_item.setText(idx, temp_list[idx])
+
+            now_disks.add(new_partition['device'])
+
+        for key, current in self.disk_rows.items():
+            if key not in now_disks:
+                if current.parent() is not None:
+                    current.parent().removeChild(current)
+                else:
+                    self.treeview_disk_part_info.takeTopLevelItem(
+                        self.treeview_disk_part_info.indexOfTopLevelItem(current))
 
     def set_disk_usage(self):
         current_disk_usage = psutil.disk_usage('/')
@@ -134,7 +147,6 @@ class Network_Info:
                                      self.net_io_counters[key]['MB recv per sec']) / (float)(
                                         8 * 1024 * 1024)}
                 self.net_io_counters[key] = one_net_info
-
 
             else:
                 one_net_info = {'Bytes sent': actual_net_io_counters[key].bytes_sent,
@@ -260,7 +272,7 @@ class UI_Wrapped(Ui_MainWindow):
             self.verticalLayout_cpu_extra_info.addWidget(elem)
 
     def setup_memory_info(self):
-        self.verticalLayout_memory_info.addWidget(self.mem_info.textEdit_partitions)
+        self.verticalLayout_memory_info.addWidget(self.mem_info.treeview_disk_part_info)
         self.verticalLayout_memory_info.addWidget(self.mem_info.label_disk_usage)
         self.verticalLayout_memory_info.addWidget(self.mem_info.p_bar_diskspace)
 
