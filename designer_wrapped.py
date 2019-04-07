@@ -161,18 +161,36 @@ class Processes_Info:
                               'cpu_num', 'memory_info']
         self.treeview_processes_info = QtWidgets.QTreeWidget()
         self.treeview_processes_info.setHeaderLabels(self.header_labels)
-        self.get_data()
+        self.treeview_processes_info.setSortingEnabled(True)
+        self.processes_rows = {}
+        self.change_info()
 
-    def get_data(self):
+    def change_info(self):
+        now_pids = set()
         for proc in psutil.process_iter(attrs=self.header_labels):
             proc_dict = proc.info
             proc_dict['cpu_percent'] = proc_dict['cpu_percent'] / Processes_Info.nr_of_cpues
+            proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime('%Y-%m-%d %H:%M:%S')
             proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
             temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
-            QtWidgets.QTreeWidgetItem(self.treeview_processes_info, temp_list)
 
-    def change_info(self):
-        pass
+            if proc_dict['pid'] not in self.processes_rows.keys():
+                temp_widget_item = QtWidgets.QTreeWidgetItem(self.treeview_processes_info, temp_list)
+                self.processes_rows[proc_dict['pid']] = temp_widget_item
+            else:
+                temp_widget_item = self.processes_rows[proc_dict['pid']]
+                for idx in range(len(temp_list)):
+                    temp_widget_item.setText(idx, temp_list[idx])
+
+            now_pids.add(proc_dict['pid'])
+
+        for key, current in self.processes_rows.items():
+            if key not in now_pids:
+                if current.parent() is not None:
+                    current.parent().removeChild(current)
+                else:
+                    self.treeview_processes_info.takeTopLevelItem(
+                        self.treeview_processes_info.indexOfTopLevelItem(current))
 
 
 class UI_Wrapped(Ui_MainWindow):
@@ -304,3 +322,6 @@ class UI_Wrapped(Ui_MainWindow):
 
     def update_net_info(self):
         self.net_info.change_info()
+
+    def update_processes_info(self):
+        self.proc_info.change_info()
