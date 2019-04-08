@@ -259,7 +259,6 @@ class UI_Wrapped(Ui_MainWindow):
         self.net_info = Network_Info()
         self.proc_info = Processes_Info()
 
-        self.gather_frames()
         self.setup_combobox_system_info()
         self.setup_cpu_extra_percentages()
         self.setup_cpu_percentage()
@@ -267,24 +266,8 @@ class UI_Wrapped(Ui_MainWindow):
         self.setup_net_info()
         self.setup_processes_info()
 
-        self.show_frame(self.frame_cpu_plots)
-
-    def gather_frames(self):
-        self.gathered_frames.append(self.frame_cpu_plots)
-        self.gathered_frames.append(self.frame_progress_bars)
-        self.gathered_frames.append(self.frame_cpu_extra_info)
-        self.gathered_frames.append(self.frame_memory_info)
-        self.gathered_frames.append(self.frame_network_info)
-        self.gathered_frames.append(self.frame_processes_info)
-
-    def show_frame(self, frame_to_show):
-        for temp_frame in self.gathered_frames:
-            if temp_frame is not frame_to_show:
-                temp_frame.hide()
-        frame_to_show.show()
 
     def setup_cpu_percentage(self):
-        self.frame_progress_bars.hide()
         # setup cpu related
         for cpu in range(multiprocessing.cpu_count()):
             # setup real-time plots
@@ -326,35 +309,20 @@ class UI_Wrapped(Ui_MainWindow):
 
     def combobox_system_info_selected(self, combo_text):
         self.textEdit.append(combo_text)
-        if combo_text == 'CPU PERCENTAGE':
-            self.show_frame(self.frame_cpu_plots)
-        elif combo_text == 'CPU INFO':
-            self.show_frame(self.frame_cpu_extra_info)
-        elif combo_text == 'MEMORY':
-            self.show_frame(self.frame_memory_info)
-        elif combo_text == 'NETWORK':
-            self.show_frame(self.frame_network_info)
-        elif combo_text == 'PROCESSES':
-            self.show_frame(self.frame_processes_info)
+        pass
 
     def cpu_views_button_pushed(self):
-        if self.button_cpu_views.text() == 'PLOTS':
-            self.show_frame(self.frame_cpu_plots)
-            self.button_cpu_views.setText('BARS')
-        else:
-            self.show_frame(self.frame_progress_bars)
-            self.button_cpu_views.setText('PLOTS')
+        pass
 
     def retranslateUi(self, MainWindow):
         super().retranslateUi(MainWindow)
 
     def update_cpu_perc_p_bars(self, cpu_perc_list):
-        if not self.frame_progress_bars.isHidden():
-            self.textEdit.append(str(len(cpu_perc_list)))
-            self.textEdit.append(str(len(self.cpu_p_bars_list)))
+        self.textEdit.append(str(len(cpu_perc_list)))
+        self.textEdit.append(str(len(self.cpu_p_bars_list)))
 
-            for cpu_index in range(len(cpu_perc_list)):
-                self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
+        for cpu_index in range(len(cpu_perc_list)):
+            self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
 
     def update_cpu_perc_plots(self, cpu_perc_list):
         self.cpu_plots_X_values.insert(0, time())
