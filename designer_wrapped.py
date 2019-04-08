@@ -108,7 +108,7 @@ class Network_Info:
         self.treeview_net_con.setHeaderLabels(self.net_con_headers)
 
         self.net_io_headers = ['Network Interface', 'Bytes sent', 'Bytes received', 'Packets sent', 'Packets sent',
-                               'MB sent/sec', 'MB rev/ sec']
+                               'B sent/sec', 'B recv/ sec']
         self.net_io_rows = {}
         self.treeview_net_io_info = QtWidgets.QTreeWidget()
         self.treeview_net_io_info.setHeaderLabels(self.net_io_headers)
@@ -166,12 +166,10 @@ class Network_Info:
                                 str(actual_net_io_counters[key].packets_recv),
 
                                 str(actual_net_io_counters[key].bytes_sent -
-                                    int(self.net_io_rows[key].text(1)) / (float)(
-                                    8 * 1024 * 1024)),
+                                    int(self.net_io_rows[key].text(1))),
 
                                 str((actual_net_io_counters[key].bytes_recv -
-                                     int(self.net_io_rows[key].text(2))) / (float)(
-                                    8 * 1024 * 1024))]
+                                     int(self.net_io_rows[key].text(2))))]
 
                 temp_net_io_row = self.net_io_rows[key]
                 for idx in range(len(one_net_info)):
