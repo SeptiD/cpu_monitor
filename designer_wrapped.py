@@ -102,10 +102,10 @@ class Memory_Info:
 
 class Network_Info:
     def __init__(self):
-        self.info_list = []
-
-        self.textEdit_net_connections = QtWidgets.QTextEdit()
-        self.textEdit_net_connections.setReadOnly(True)
+        self.net_con_headers = ['Fd', 'PID', 'IP', 'Port', 'Status']
+        self.net_con_rows = {}
+        self.treeview_net_con = QtWidgets.QTreeWidget()
+        self.treeview_net_con.setHeaderLabels(self.net_con_headers)
 
         self.net_io_headers = ['Network Interface', 'Bytes sent', 'Bytes received', 'Packets sent', 'Packets sent',
                                'MB sent/sec', 'MB rev/ sec']
@@ -121,15 +121,38 @@ class Network_Info:
         self.set_net_io_counters()
 
     def set_net_connections(self):
-        self.textEdit_net_connections.clear()
-
-        for elem in psutil.net_connections():
+        now_net_con = set()
+        actual_net_con = psutil.net_connections()
+        for elem in actual_net_con:
             # example:
             # sconn(fd=97, family=<AddressFamily.AF_INET: 2>, type=<SocketKind.SOCK_STREAM: 1>,
             # laddr=addr(ip='0.0.0.0', port=57621), raddr=(), status='LISTEN', pid=13056)
-            temp_elem = str(elem)
-            temp_elem = temp_elem[temp_elem.find('('):-1]
-            self.textEdit_net_connections.append(temp_elem)
+            one_net_con = []
+            one_net_con.append(str(elem.fd))
+            one_net_con.append(str(elem.pid))
+            one_net_con.append(str(elem.laddr.ip))
+            one_net_con.append(str(elem.laddr.port))
+            one_net_con.append(elem.status)
+
+            key = elem.pid
+            if key in self.net_con_rows:
+                temp_net_con_row = self.net_con_rows[elem.pid]
+                for idx in range(len(one_net_con)):
+                    temp_net_con_row.setText(idx, one_net_con[idx])
+            else:
+                temp_widget_item = QtWidgets.QTreeWidgetItem(self.treeview_net_con, one_net_con)
+                self.net_con_rows[key] = temp_widget_item
+
+            now_net_con.add(key)
+
+        # check for networks no longer available
+        for key, current in self.net_con_rows.items():
+            if key not in now_net_con:
+                if current.parent() is not None:
+                    current.parent().removeChild(current)
+                else:
+                    self.treeview_net_con.takeTopLevelItem(
+                        self.treeview_net_con.indexOfTopLevelItem(current))
 
     def set_net_io_counters(self):
         now_net_io_counters = set()
@@ -293,7 +316,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.verticalLayout_memory_info.addWidget(self.mem_info.p_bar_diskspace)
 
     def setup_net_info(self):
-        self.verticalLayout_network_info.addWidget(self.net_info.textEdit_net_connections)
+        self.verticalLayout_network_info.addWidget(self.net_info.treeview_net_con)
         self.verticalLayout_network_info.addWidget(self.net_info.treeview_net_io_info)
 
     def setup_processes_info(self):
