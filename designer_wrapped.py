@@ -33,7 +33,11 @@ class CPU_Extra_Info:
             self.info_list.append(temp_p_bar_temperature)
             self.just_temperature_list.append(temp_p_bar_temperature)
 
-    def change_info(self, info_touple, temperature_tuples, battery_tuple):
+    def change_info(self):
+        info_touple = psutil.cpu_stats()
+        temperature_tuples = psutil.sensors_temperatures()['coretemp']
+        battery_tuple = psutil.sensors_battery()
+
         self.label_ctx_switches.setText("Context Switches:" + str(info_touple.ctx_switches))
         self.label_interrupts.setText("Interrupts:" + str(info_touple.interrupts))
         self.label_soft_interrupts.setText("Software Interrupts:" + str(info_touple.soft_interrupts))
@@ -331,8 +335,8 @@ class UI_Wrapped(Ui_MainWindow):
     def update_cpu_perc(self):
         self.cpu_perc_info.change_info()
 
-    def update_cpu_extra_info(self, info_tuple, temperature_tuples, battery_tuple):
-        self.cpu_e_i.change_info(info_tuple, temperature_tuples, battery_tuple)
+    def update_cpu_extra_info(self):
+        self.cpu_e_i.change_info()
 
     def update_memory_info(self):
         self.mem_info.change_info()
