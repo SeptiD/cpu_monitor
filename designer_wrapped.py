@@ -1,9 +1,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from designer import Ui_MainWindow
 import pyqtgraph as pg
-import multiprocessing
 import utils
-from time import strftime, time, gmtime
+from time import time
 from datetime import datetime
 import psutil
 
@@ -242,18 +241,45 @@ class Processes_Info:
                         self.treeview_processes_info.indexOfTopLevelItem(current))
 
 
+class CPU_Info:
+    nr_of_cpues = psutil.cpu_count()
+
+    def __init__(self):
+        # setup cpu related
+        self.cpu_plots_list = []
+        self.cpu_plots_data_lists = []
+        self.cpu_plots_curves_list = []
+        self.cpu_p_bars_list = []
+        for cpu in range(CPU_Info.nr_of_cpues):
+            # setup real-time plots
+            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+            temp_plot.setYRange(0, 100)
+            temp_plot.setXRange(0, 60)
+            self.cpu_plots_list.append(temp_plot)
+            self.cpu_plots_data_lists.append([])
+            self.cpu_plots_curves_list.append(
+                temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
+
+            # setup progress bars
+            temp_p_bar = utils.CustomProgressBar()
+            self.cpu_p_bars_list.append(temp_p_bar)
+
+    def change_info(self):
+        cpu_perc_list = psutil.cpu_percent(interval=None, percpu=True)
+        # self.cpu_plots_X_values.insert(0, time())
+        for cpu_index in range(len(cpu_perc_list)):
+            self.cpu_plots_data_lists[cpu_index].insert(0, cpu_perc_list[cpu_index])
+            self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
+
+            self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
+
+
 class UI_Wrapped(Ui_MainWindow):
     combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
 
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)
-        self.gathered_frames = []
-        self.cpu_plots_list = []
-        self.cpu_p_bars_list = []
-        self.cpu_plots_data_lists = []
-        self.cpu_plots_curves_list = []
-        self.cpu_plots_max_seconds = 10
-        self.cpu_plots_X_values = []
+        self.cpu_perc_info = CPU_Info()
         self.cpu_e_i = CPU_Extra_Info()
         self.mem_info = Memory_Info()
         self.net_info = Network_Info()
@@ -266,26 +292,11 @@ class UI_Wrapped(Ui_MainWindow):
         self.setup_net_info()
         self.setup_processes_info()
 
-
     def setup_cpu_percentage(self):
-        # setup cpu related
-        for cpu in range(multiprocessing.cpu_count()):
-            # setup real-time plots
-            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
-            temp_plot.setYRange(0, 100)
-            temp_plot.setXRange(0, 60)
-            self.cpu_plots_list.append(temp_plot)
-            self.cpu_plots_data_lists.append([])
-            self.cpu_plots_curves_list.append(
-                temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
+        for temp_plot in self.cpu_perc_info.cpu_plots_list:
             self.verticalLayout_cpu_plots.addWidget(temp_plot)
-
-            # setup progress bars
-            temp_p_bar = utils.CustomProgressBar()
-            self.cpu_p_bars_list.append(temp_p_bar)
+        for temp_p_bar in self.cpu_perc_info.cpu_p_bars_list:
             self.verticalLayout_cpu_progress_bars.addWidget(temp_p_bar)
-
-        self.button_cpu_views.clicked.connect(self.cpu_views_button_pushed)
 
     def setup_cpu_extra_percentages(self):
         for elem in self.cpu_e_i.info_list:
@@ -317,19 +328,8 @@ class UI_Wrapped(Ui_MainWindow):
     def retranslateUi(self, MainWindow):
         super().retranslateUi(MainWindow)
 
-    def update_cpu_perc_p_bars(self, cpu_perc_list):
-        self.textEdit.append(str(len(cpu_perc_list)))
-        self.textEdit.append(str(len(self.cpu_p_bars_list)))
-
-        for cpu_index in range(len(cpu_perc_list)):
-            self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
-
-    def update_cpu_perc_plots(self, cpu_perc_list):
-        self.cpu_plots_X_values.insert(0, time())
-        for cpu_index in range(len(cpu_perc_list)):
-            self.cpu_plots_data_lists[cpu_index].insert(0, cpu_perc_list[cpu_index])
-
-            self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
+    def update_cpu_perc(self):
+        self.cpu_perc_info.change_info()
 
     def update_cpu_extra_info(self, info_tuple, temperature_tuples, battery_tuple):
         self.cpu_e_i.change_info(info_tuple, temperature_tuples, battery_tuple)

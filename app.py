@@ -13,10 +13,7 @@ w.show()
 
 
 def handler_psutil():
-    value = psutil.cpu_percent(interval=None, percpu=True)
-    ex.textEdit.append(str(value))
-    ex.update_cpu_perc_p_bars(value)
-    ex.update_cpu_perc_plots(value)
+    ex.update_cpu_perc()
     value2 = psutil.cpu_stats()
     value_temperature = psutil.sensors_temperatures()['coretemp']
     value_battery = psutil.sensors_battery()
@@ -24,6 +21,7 @@ def handler_psutil():
     ex.update_memory_info()
     ex.update_net_info()
     ex.update_processes_info()
+
 
 timer = QtCore.QTimer()
 timer.timeout.connect(handler_psutil)
