@@ -5,7 +5,7 @@ class CustomProgressBar(QtWidgets.QProgressBar):
     th1 = 40
     th2 = 80
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         QtWidgets.QProgressBar.__init__(self, parent)
         self.customPallete = QtGui.QPalette(self.palette())
 
@@ -14,11 +14,34 @@ class CustomProgressBar(QtWidgets.QProgressBar):
 
         if value < CustomProgressBar.th1:
             self.customPallete.setColor(QtGui.QPalette.Highlight,
-                             QtGui.QColor(QtCore.Qt.blue))
+                                        QtGui.QColor(QtCore.Qt.blue))
         elif CustomProgressBar.th1 <= value < CustomProgressBar.th2:
             self.customPallete.setColor(QtGui.QPalette.Highlight,
-                             QtGui.QColor(QtCore.Qt.darkYellow))
+                                        QtGui.QColor(QtCore.Qt.darkYellow))
         else:
             self.customPallete.setColor(QtGui.QPalette.Highlight,
-                             QtGui.QColor(QtCore.Qt.red))
+                                        QtGui.QColor(QtCore.Qt.red))
+        self.setPalette(self.customPallete)
+
+
+class BatteryProgressBar(QtWidgets.QProgressBar):
+    th1 = 20
+    th2 = 70
+
+    def __init__(self, parent=None):
+        QtWidgets.QProgressBar.__init__(self, parent)
+        self.customPallete = QtGui.QPalette(self.palette())
+
+    def setValue(self, value):
+        QtGui.QProgressBar.setValue(self, value)
+
+        if value < CustomProgressBar.th1:
+            self.customPallete.setColor(QtGui.QPalette.Highlight,
+                                        QtGui.QColor(QtCore.Qt.red))
+        elif CustomProgressBar.th1 <= value < CustomProgressBar.th2:
+            self.customPallete.setColor(QtGui.QPalette.Highlight,
+                                        QtGui.QColor(QtCore.Qt.darkYellow))
+        else:
+            self.customPallete.setColor(QtGui.QPalette.Highlight,
+                                        QtGui.QColor(QtCore.Qt.blue))
         self.setPalette(self.customPallete)

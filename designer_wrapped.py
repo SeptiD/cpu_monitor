@@ -18,14 +18,20 @@ class TimeAxisItem(pg.AxisItem):
 class CPU_Extra_Info:
     def __init__(self):
         self.info_list = []
-        self.p_bar_battery = utils.CustomProgressBar()
+        self.p_bar_battery = utils.BatteryProgressBar()
         self.info_list.append(self.p_bar_battery)
+
         self.label_ctx_switches = QtWidgets.QLabel("Context Switches:")
-        self.info_list.append(self.label_ctx_switches)
         self.label_interrupts = QtWidgets.QLabel("Interrupts:")
-        self.info_list.append(self.label_interrupts)
         self.label_soft_interrupts = QtWidgets.QLabel("Soft Interrupts:")
-        self.info_list.append(self.label_soft_interrupts)
+
+        self.extra_cpu_info = QtWidgets.QGroupBox("CPU extra information:")
+        self.vbox = QtWidgets.QVBoxLayout()
+        self.vbox.addWidget(self.label_ctx_switches)
+        self.vbox.addWidget(self.label_interrupts)
+        self.vbox.addWidget(self.label_soft_interrupts)
+        self.extra_cpu_info.setLayout(self.vbox)
+        self.info_list.append(self.extra_cpu_info)
 
         self.just_temperature_list = []
         for cpu in range(psutil.cpu_count(logical=False)):
@@ -43,9 +49,13 @@ class CPU_Extra_Info:
         self.label_soft_interrupts.setText("Software Interrupts:" + str(info_touple.soft_interrupts))
 
         self.p_bar_battery.setValue(battery_tuple.percent)
+        self.p_bar_battery.setFormat("Battery: " + str(round(battery_tuple.percent, 1)) + '%')
+
         temperature_tuples.pop(0)
         for index in range(len(temperature_tuples)):
             self.just_temperature_list[index].setValue(temperature_tuples[index].current)
+            self.just_temperature_list[index].setFormat(
+                'Core ' + str(index) + ' temperature: ' + str(temperature_tuples[index].current) + '°C')
 
 
 class Memory_Info:
