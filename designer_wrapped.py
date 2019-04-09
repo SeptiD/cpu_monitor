@@ -307,8 +307,15 @@ class UI_Wrapped(Ui_MainWindow):
         self.setup_processes_info()
 
     def setup_cpu_percentage(self):
+        row = 0
+        column = 0
         for temp_plot in self.cpu_perc_info.cpu_plots_list:
-            self.verticalLayout_cpu_plots.addWidget(temp_plot)
+            self.gridLayout_cpu_plots.addWidget(temp_plot, row, column)
+            if column == 0:
+                column += 1
+            else:
+                column -= 1
+                row += 1
         for temp_p_bar in self.cpu_perc_info.cpu_p_bars_list:
             self.verticalLayout_cpu_progress_bars.addWidget(temp_p_bar)
 
