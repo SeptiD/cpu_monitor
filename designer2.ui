@@ -7,161 +7,119 @@
     <x>0</x>
     <y>0</y>
     <width>1091</width>
-    <height>671</height>
+    <height>597</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>CPU Monitor</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>107</width>
-      <height>511</height>
-     </rect>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="sizeConstraint">
+     <enum>QLayout::SetDefaultConstraint</enum>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout_options">
-     <item>
-      <widget class="QComboBox" name="comboBox_system_info"/>
-     </item>
-     <item>
-      <widget class="QPushButton" name="button_cpu_views">
-       <property name="text">
-        <string>BARS</string>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
-       </property>
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout_options">
+      <item>
+       <widget class="QComboBox" name="comboBox_system_info"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="button_cpu_views">
+        <property name="text">
+         <string>BARS</string>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton">
+        <property name="text">
+         <string>PushButton</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTextEdit" name="textEdit">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab_cpu_perc_plots">
+       <attribute name="title">
+        <string>CPU %</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_cpu_plots"/>
+        </item>
+       </layout>
       </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton">
-       <property name="text">
-        <string>PushButton</string>
-       </property>
+      <widget class="QWidget" name="tab_cpu_per_bars">
+       <attribute name="title">
+        <string>CPU % Bars</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_cpu_progress_bars"/>
+        </item>
+       </layout>
       </widget>
-     </item>
-     <item>
-      <widget class="QTextEdit" name="textEdit">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
+      <widget class="QWidget" name="tab_extra_info">
+       <attribute name="title">
+        <string>Extra Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_cpu_extra_info"/>
+        </item>
+       </layout>
       </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QTabWidget" name="tabWidget">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>10</y>
-      <width>951</width>
-      <height>511</height>
-     </rect>
-    </property>
-    <property name="currentIndex">
-     <number>5</number>
-    </property>
-    <widget class="QWidget" name="tab_cpu_perc_plots">
-     <attribute name="title">
-      <string>CPU %</string>
-     </attribute>
-     <widget class="QWidget" name="verticalLayoutWidget_2">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>941</width>
-        <height>481</height>
-       </rect>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_cpu_plots"/>
+      <widget class="QWidget" name="tab_memory_info">
+       <attribute name="title">
+        <string>Memory Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_memory_info"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_net_info">
+       <attribute name="title">
+        <string>Networks Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_network_info"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_proc_info">
+       <attribute name="title">
+        <string>Processes Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_processes_info"/>
+        </item>
+       </layout>
+      </widget>
      </widget>
-    </widget>
-    <widget class="QWidget" name="tab_cpu_per_bars">
-     <attribute name="title">
-      <string>CPU % Bars</string>
-     </attribute>
-     <widget class="QWidget" name="verticalLayoutWidget_3">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>951</width>
-        <height>481</height>
-       </rect>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_cpu_progress_bars"/>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_extra_info">
-     <attribute name="title">
-      <string>Extra Info</string>
-     </attribute>
-     <widget class="QWidget" name="verticalLayoutWidget_4">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>951</width>
-        <height>481</height>
-       </rect>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_cpu_extra_info"/>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_memory_info">
-     <attribute name="title">
-      <string>Memory Info</string>
-     </attribute>
-     <widget class="QWidget" name="verticalLayoutWidget_5">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>941</width>
-        <height>481</height>
-       </rect>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_memory_info"/>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_net_info">
-     <attribute name="title">
-      <string>Networks Info</string>
-     </attribute>
-     <widget class="QWidget" name="verticalLayoutWidget_6">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>951</width>
-        <height>481</height>
-       </rect>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_network_info"/>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_proc_info">
-     <attribute name="title">
-      <string>Processes Info</string>
-     </attribute>
-     <widget class="QWidget" name="verticalLayoutWidget_7">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>951</width>
-        <height>481</height>
-       </rect>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_processes_info"/>
-     </widget>
-    </widget>
-   </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menuBar">
