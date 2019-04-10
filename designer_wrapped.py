@@ -5,6 +5,20 @@ import utils
 from time import time
 from datetime import datetime
 import psutil
+import shlex
+from subprocess import PIPE
+import sys
+from subprocess import PIPE, Popen
+from threading import Thread
+from queue import Queue, Empty
+
+ON_POSIX = 'posix' in sys.builtin_module_names
+
+
+def enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+    out.close()
 
 
 class TimeAxisItem(pg.AxisItem):
@@ -288,6 +302,35 @@ class CPU_Info:
             self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
 
 
+class HPC_Info:
+    def __init__(self):
+        self.perf_handler = None
+        self.textEdit_hpc = QtWidgets.QTextEdit()
+        self.start_popen()
+        self.q = Queue()
+        t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
+        t.daemon = True  # thread dies with the program
+        t.start()
+
+        # self.check = False
+
+    def start_popen(self):
+        args = shlex.split('perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A')
+        self.perf_handler = psutil.Popen(args, stderr=PIPE)
+
+    def change_info(self):
+        # if not self.check:
+        #     self.check = True
+        self.textEdit_hpc.append('-----------\n')
+
+        while True:
+            try:
+                # line = q.get_nowait()
+                line = self.q.get(timeout=.1)
+                self.textEdit_hpc.append(line.decode('ascii'))
+            except Empty:
+                break
+
 class UI_Wrapped(Ui_MainWindow):
     combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
 
@@ -298,6 +341,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.mem_info = Memory_Info()
         self.net_info = Network_Info()
         self.proc_info = Processes_Info()
+        self.hpc_info = HPC_Info()
 
         self.setup_combobox_system_info()
         self.setup_cpu_extra_percentages()
@@ -305,6 +349,7 @@ class UI_Wrapped(Ui_MainWindow):
         self.setup_memory_info()
         self.setup_net_info()
         self.setup_processes_info()
+        self.setup_hpc_info()
 
     def setup_cpu_percentage(self):
         row = 0
@@ -335,6 +380,9 @@ class UI_Wrapped(Ui_MainWindow):
     def setup_processes_info(self):
         self.verticalLayout_processes_info.addWidget(self.proc_info.treeview_processes_info)
 
+    def setup_hpc_info(self):
+        self.verticalLayout_hpc.addWidget(self.hpc_info.textEdit_hpc)
+
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
         self.comboBox_system_info.activated[str].connect(self.combobox_system_info_selected)
@@ -363,3 +411,6 @@ class UI_Wrapped(Ui_MainWindow):
 
     def update_processes_info(self):
         self.proc_info.change_info()
+
+    def update_hpc_info(self):
+        self.hpc_info.change_info()

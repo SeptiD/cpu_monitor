@@ -18,6 +18,7 @@ def handler_psutil():
     ex.update_memory_info()
     ex.update_net_info()
     ex.update_processes_info()
+    ex.update_hpc_info()
 
 
 timer = QtCore.QTimer()
