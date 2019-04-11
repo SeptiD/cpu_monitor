@@ -136,7 +136,7 @@
          <number>9</number>
         </property>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_hpc"/>
+         <layout class="QGridLayout" name="gridLayout_hpc_info"/>
         </item>
        </layout>
       </widget>

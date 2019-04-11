@@ -303,33 +303,81 @@ class CPU_Info:
 
 
 class HPC_Info:
+    cpu_count = psutil.cpu_count()
+
     def __init__(self):
+        self.hpc_data = []
+        self.hpc_plots = []
+        self.hpc_curves = []
+
+        self.init_hpc()
+        self.hpc_codes = {0: 'r203', 1: 'r803', 2: 'r105', 3: 'r205'}
+
         self.perf_handler = None
-        self.textEdit_hpc = QtWidgets.QTextEdit()
+        # self.textEdit_hpc = QtWidgets.QTextEdit()
         self.start_popen()
         self.q = Queue()
         t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
         t.daemon = True  # thread dies with the program
         t.start()
 
-        # self.check = False
+        self.check = False
+
+    def init_hpc(self):
+        for idx in range(4):
+            temp_data_list = []
+            temp_plots_list = []
+            temp_curves_list = []
+            for idx2 in range(HPC_Info.cpu_count):
+                temp_data_list.append([])
+
+                temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+                temp_plot.setXRange(0, 60)
+                temp_plots_list.append(temp_plot)
+                temp_curves_list.append(temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
+
+            self.hpc_data.append(temp_data_list)
+            self.hpc_plots.append(temp_plots_list)
+            self.hpc_curves.append(temp_curves_list)
 
     def start_popen(self):
-        args = shlex.split('perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A')
+        args = shlex.split('perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x ,')
         self.perf_handler = psutil.Popen(args, stderr=PIPE)
 
     def change_info(self):
         # if not self.check:
         #     self.check = True
-        self.textEdit_hpc.append('-----------\n')
+            # self.textEdit_hpc.append('-----------\n')
 
         while True:
             try:
                 # line = q.get_nowait()
                 line = self.q.get(timeout=.1)
-                self.textEdit_hpc.append(line.decode('ascii'))
+                # self.textEdit_hpc.append(line.decode('ascii'))
+                self.update_data(line)
             except Empty:
                 break
+
+        self.update_curves()
+
+    def update_data(self, input_line):
+        #  1.000418172 CPU1                40.462      r205
+        #  1.000472956,CPU5,25933,,r105,1000277655,100,00,,
+        input_line = input_line.decode('ascii').strip()
+        splitted = input_line.split(',')
+        cpu = int(splitted[1][-1])
+        value = int(splitted[2])
+        hpc = splitted[4]
+
+        for key, hpc_val in self.hpc_codes.items():  # for name, age in dictionary.iteritems():  (for Python 2.x)
+            if hpc in hpc_val:
+                self.hpc_data[key][cpu].insert(0, value)
+
+    def update_curves(self):
+        for idx in range(4):
+            for idx2 in range(HPC_Info.cpu_count):
+                self.hpc_curves[idx][idx2].setData(y=self.hpc_data[idx][idx2])
+
 
 class UI_Wrapped(Ui_MainWindow):
     combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
@@ -381,7 +429,11 @@ class UI_Wrapped(Ui_MainWindow):
         self.verticalLayout_processes_info.addWidget(self.proc_info.treeview_processes_info)
 
     def setup_hpc_info(self):
-        self.verticalLayout_hpc.addWidget(self.hpc_info.textEdit_hpc)
+        # self.verticalLayout_hpc.addWidget(self.hpc_info.textEdit_hpc)
+        for column in range(len(self.hpc_info.hpc_plots)):
+            for row in range(len(self.hpc_info.hpc_plots[0])):
+                self.gridLayout_hpc_info.addWidget(self.hpc_info.hpc_plots[column][row], row, column)
+
 
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
