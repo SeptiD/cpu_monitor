@@ -280,7 +280,7 @@ class CPU_Info:
         self.cpu_p_bars_list = []
         for cpu in range(CPU_Info.nr_of_cpues):
             # setup real-time plots
-            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='CPU ' + str(cpu))
             temp_plot.setYRange(0, 100)
             temp_plot.setXRange(0, 60)
             self.cpu_plots_list.append(temp_plot)
@@ -309,9 +309,9 @@ class HPC_Info:
         self.hpc_data = []
         self.hpc_plots = []
         self.hpc_curves = []
+        self.hpc_codes = {0: 'r203', 1: 'r803', 2: 'r105', 3: 'r205'}
 
         self.init_hpc()
-        self.hpc_codes = {0: 'r203', 1: 'r803', 2: 'r105', 3: 'r205'}
 
         self.perf_handler = None
         # self.textEdit_hpc = QtWidgets.QTextEdit()
@@ -331,7 +331,8 @@ class HPC_Info:
             for idx2 in range(HPC_Info.cpu_count):
                 temp_data_list.append([])
 
-                temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+                title = 'CPU ' + str(idx2) + ' - ' + self.hpc_codes[idx]
+                temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title=title)
                 temp_plot.setXRange(0, 60)
                 temp_plots_list.append(temp_plot)
                 temp_curves_list.append(temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
@@ -347,7 +348,7 @@ class HPC_Info:
     def change_info(self):
         # if not self.check:
         #     self.check = True
-            # self.textEdit_hpc.append('-----------\n')
+        # self.textEdit_hpc.append('-----------\n')
 
         while True:
             try:
@@ -433,7 +434,6 @@ class UI_Wrapped(Ui_MainWindow):
         for column in range(len(self.hpc_info.hpc_plots)):
             for row in range(len(self.hpc_info.hpc_plots[0])):
                 self.gridLayout_hpc_info.addWidget(self.hpc_info.hpc_plots[column][row], row, column)
-
 
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
