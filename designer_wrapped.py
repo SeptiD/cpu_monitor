@@ -3,7 +3,7 @@ from designer import Ui_MainWindow
 import pyqtgraph as pg
 import utils
 from time import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import psutil
 import shlex
 from subprocess import PIPE
@@ -11,6 +11,7 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Thread
 from queue import Queue, Empty
+
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -38,12 +39,16 @@ class CPU_Extra_Info:
         self.label_ctx_switches = QtWidgets.QLabel("Context Switches:")
         self.label_interrupts = QtWidgets.QLabel("Interrupts:")
         self.label_soft_interrupts = QtWidgets.QLabel("Soft Interrupts:")
+        self.label_up_time = QtWidgets.QLabel("Up time:")
+        self.up_time = datetime.now().replace(microsecond=0) - datetime.fromtimestamp(psutil.boot_time())
 
         self.extra_cpu_info = QtWidgets.QGroupBox("CPU extra information:")
         self.vbox = QtWidgets.QVBoxLayout()
         self.vbox.addWidget(self.label_ctx_switches)
         self.vbox.addWidget(self.label_interrupts)
         self.vbox.addWidget(self.label_soft_interrupts)
+        self.vbox.addWidget(self.label_up_time)
+
         self.extra_cpu_info.setLayout(self.vbox)
         self.info_list.append(self.extra_cpu_info)
 
@@ -61,6 +66,9 @@ class CPU_Extra_Info:
         self.label_ctx_switches.setText("Context Switches:" + str(info_touple.ctx_switches))
         self.label_interrupts.setText("Interrupts:" + str(info_touple.interrupts))
         self.label_soft_interrupts.setText("Software Interrupts:" + str(info_touple.soft_interrupts))
+        self.up_time = self.up_time + timedelta(0,1)
+        self.label_up_time.setText("Up Time:" + str(self.up_time))
+
 
         self.p_bar_battery.setValue(battery_tuple.percent)
         self.p_bar_battery.setFormat("Battery: " + str(round(battery_tuple.percent, 1)) + '%')
