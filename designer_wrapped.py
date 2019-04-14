@@ -243,19 +243,9 @@ class Processes_Info:
         self.kill_process_action = QtWidgets.QAction("Kill process", None)
         self.kill_process_action.triggered.connect(self.kill_proc)
         self.treeview_processes_info.addAction(self.kill_process_action)
-        self.treeview_processes_info.clicked.connect(self.item_activated_event)
-        self.this_item = None
-
-
 
         self.processes_rows = {}
-
-        self.text_edit = QtWidgets.QTextEdit()
-        self.text_edit.setReadOnly(True)
-        self.text_edit.append('start')
         self.change_info()
-
-
 
     def change_info(self):
         now_pids = set()
@@ -285,17 +275,10 @@ class Processes_Info:
                         self.treeview_processes_info.indexOfTopLevelItem(current))
 
     def kill_proc(self):
-        if self.this_item:
-            self.text_edit.append('pid'+self.this_item.text(0))
-            pid = int(self.this_item.text(0))
-            p = psutil.Process(pid)
-            p.terminate()
-            self.this_item = None
-
-    def item_activated_event(self, index):
-        item = self.treeview_processes_info.selectedItems()[0]
-        self.this_item = item
-
+        my_item = self.treeview_processes_info.currentItem()
+        pid = int(my_item.text(0))
+        p = psutil.Process(pid)
+        p.terminate()
 
 
 class CPU_Info:
@@ -457,7 +440,6 @@ class UI_Wrapped(Ui_MainWindow):
 
     def setup_processes_info(self):
         self.verticalLayout_processes_info.addWidget(self.proc_info.treeview_processes_info)
-        self.verticalLayout_processes_info.addWidget(self.proc_info.text_edit)
 
     def setup_hpc_info(self):
         # self.verticalLayout_hpc.addWidget(self.hpc_info.textEdit_hpc)
