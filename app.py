@@ -13,13 +13,13 @@ w.show()
 
 
 def handler_psutil():
-    ex.update_cpu_perc()
-    ex.update_cpu_extra_info()
-    ex.update_memory_info()
-    ex.update_net_info()
-    ex.update_processes_info()
-    ex.update_hpc_info()
-
+    # ex.update_cpu_perc()
+    # ex.update_cpu_extra_info()
+    # ex.update_memory_info()
+    # ex.update_net_info()
+    # ex.update_processes_info()
+    # ex.update_hpc_info()
+    ex.update_all()
 
 timer = QtCore.QTimer()
 timer.timeout.connect(handler_psutil)

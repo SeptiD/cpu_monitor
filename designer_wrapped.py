@@ -29,6 +29,52 @@ class TimeAxisItem(pg.AxisItem):
         return [datetime.utcfromtimestamp(value).strftime('%M:%S') for value in values]
 
 
+class CPU_Info:
+    nr_of_cpues = psutil.cpu_count()
+
+    def __init__(self):
+        # setup cpu related
+        self.cpu_plots_list = []
+        self.cpu_plots_data_lists = []
+        self.cpu_plots_curves_list = []
+        self.cpu_p_bars_list = []
+        for cpu in range(CPU_Info.nr_of_cpues):
+            # setup real-time plots
+            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='CPU ' + str(cpu))
+            temp_plot.setYRange(0, 100)
+            temp_plot.setXRange(0, 60)
+            self.cpu_plots_list.append(temp_plot)
+            self.cpu_plots_data_lists.append([])
+            self.cpu_plots_curves_list.append(
+                temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
+
+            # setup progress bars
+            temp_p_bar = utils.CustomProgressBar()
+            self.cpu_p_bars_list.append(temp_p_bar)
+
+    def integrate(self, wrapper):
+        row = 0
+        column = 0
+        for temp_plot in self.cpu_plots_list:
+            wrapper.gridLayout_cpu_plots.addWidget(temp_plot, row, column)
+            if column == 0:
+                column += 1
+            else:
+                column -= 1
+                row += 1
+        for temp_p_bar in self.cpu_p_bars_list:
+            wrapper.verticalLayout_cpu_progress_bars.addWidget(temp_p_bar)
+
+    def change_info(self):
+        cpu_perc_list = psutil.cpu_percent(interval=None, percpu=True)
+        # self.cpu_plots_X_values.insert(0, time())
+        for cpu_index in range(len(cpu_perc_list)):
+            self.cpu_plots_data_lists[cpu_index].insert(0, cpu_perc_list[cpu_index])
+            self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
+
+            self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
+
+
 class CPU_Extra_Info:
     def __init__(self):
         self.info_list = []
@@ -52,6 +98,10 @@ class CPU_Extra_Info:
             temp_p_bar_temperature = utils.CustomProgressBar()
             self.info_list.append(temp_p_bar_temperature)
             self.just_temperature_list.append(temp_p_bar_temperature)
+
+    def integrate(self, wrapper):
+        for elem in self.info_list:
+            wrapper.verticalLayout_cpu_extra_info.addWidget(elem)
 
     def change_info(self):
         info_touple = psutil.cpu_stats()
@@ -86,6 +136,11 @@ class Memory_Info:
         self.treeview_disk_part_info.setHeaderLabels(self.header_labels)
 
         self.change_info()
+
+    def integrate(self, wrapper):
+        wrapper.verticalLayout_memory_info.addWidget(self.treeview_disk_part_info)
+        wrapper.verticalLayout_memory_info.addWidget(self.label_disk_usage)
+        wrapper.verticalLayout_memory_info.addWidget(self.p_bar_diskspace)
 
     def change_info(self):
         self.set_disk_usage()
@@ -142,6 +197,10 @@ class Network_Info:
         self.treeview_net_io_info.setSortingEnabled(True)
 
         self.change_info()
+
+    def integrate(self, wrapper):
+        wrapper.verticalLayout_network_info.addWidget(self.treeview_net_con)
+        wrapper.verticalLayout_network_info.addWidget(self.treeview_net_io_info)
 
     def change_info(self):
         self.set_net_connections()
@@ -247,6 +306,9 @@ class Processes_Info:
         self.processes_rows = {}
         self.change_info()
 
+    def integrate(self, wrapper):
+        wrapper.verticalLayout_processes_info.addWidget(self.treeview_processes_info)
+
     def change_info(self):
         now_pids = set()
         for proc in psutil.process_iter(attrs=self.header_labels):
@@ -279,39 +341,6 @@ class Processes_Info:
         pid = int(my_item.text(0))
         p = psutil.Process(pid)
         p.terminate()
-
-
-class CPU_Info:
-    nr_of_cpues = psutil.cpu_count()
-
-    def __init__(self):
-        # setup cpu related
-        self.cpu_plots_list = []
-        self.cpu_plots_data_lists = []
-        self.cpu_plots_curves_list = []
-        self.cpu_p_bars_list = []
-        for cpu in range(CPU_Info.nr_of_cpues):
-            # setup real-time plots
-            temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='CPU ' + str(cpu))
-            temp_plot.setYRange(0, 100)
-            temp_plot.setXRange(0, 60)
-            self.cpu_plots_list.append(temp_plot)
-            self.cpu_plots_data_lists.append([])
-            self.cpu_plots_curves_list.append(
-                temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
-
-            # setup progress bars
-            temp_p_bar = utils.CustomProgressBar()
-            self.cpu_p_bars_list.append(temp_p_bar)
-
-    def change_info(self):
-        cpu_perc_list = psutil.cpu_percent(interval=None, percpu=True)
-        # self.cpu_plots_X_values.insert(0, time())
-        for cpu_index in range(len(cpu_perc_list)):
-            self.cpu_plots_data_lists[cpu_index].insert(0, cpu_perc_list[cpu_index])
-            self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
-
-            self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
 
 
 class HPC_Info:
@@ -357,6 +386,11 @@ class HPC_Info:
         args = shlex.split('perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x ,')
         self.perf_handler = psutil.Popen(args, stderr=PIPE)
 
+    def integrate(self, wrapper):
+        for column in range(len(self.hpc_plots)):
+            for row in range(len(self.hpc_plots[0])):
+                wrapper.gridLayout_hpc_info.addWidget(self.hpc_plots[column][row], row, column)
+
     def change_info(self):
         # if not self.check:
         #     self.check = True
@@ -397,55 +431,18 @@ class UI_Wrapped(Ui_MainWindow):
 
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)
-        self.cpu_perc_info = CPU_Info()
-        self.cpu_e_i = CPU_Extra_Info()
-        self.mem_info = Memory_Info()
-        self.net_info = Network_Info()
-        self.proc_info = Processes_Info()
-        self.hpc_info = HPC_Info()
 
         self.setup_combobox_system_info()
-        self.setup_cpu_extra_percentages()
-        self.setup_cpu_percentage()
-        self.setup_memory_info()
-        self.setup_net_info()
-        self.setup_processes_info()
-        self.setup_hpc_info()
 
-    def setup_cpu_percentage(self):
-        row = 0
-        column = 0
-        for temp_plot in self.cpu_perc_info.cpu_plots_list:
-            self.gridLayout_cpu_plots.addWidget(temp_plot, row, column)
-            if column == 0:
-                column += 1
-            else:
-                column -= 1
-                row += 1
-        for temp_p_bar in self.cpu_perc_info.cpu_p_bars_list:
-            self.verticalLayout_cpu_progress_bars.addWidget(temp_p_bar)
+        self.elements = []
+        self.elements.append(CPU_Info())
+        self.elements.append(CPU_Extra_Info())
+        self.elements.append(Memory_Info())
+        self.elements.append(Network_Info())
+        self.elements.append(Processes_Info())
+        self.elements.append(HPC_Info())
 
-    def setup_cpu_extra_percentages(self):
-        for elem in self.cpu_e_i.info_list:
-            self.verticalLayout_cpu_extra_info.addWidget(elem)
-
-    def setup_memory_info(self):
-        self.verticalLayout_memory_info.addWidget(self.mem_info.treeview_disk_part_info)
-        self.verticalLayout_memory_info.addWidget(self.mem_info.label_disk_usage)
-        self.verticalLayout_memory_info.addWidget(self.mem_info.p_bar_diskspace)
-
-    def setup_net_info(self):
-        self.verticalLayout_network_info.addWidget(self.net_info.treeview_net_con)
-        self.verticalLayout_network_info.addWidget(self.net_info.treeview_net_io_info)
-
-    def setup_processes_info(self):
-        self.verticalLayout_processes_info.addWidget(self.proc_info.treeview_processes_info)
-
-    def setup_hpc_info(self):
-        # self.verticalLayout_hpc.addWidget(self.hpc_info.textEdit_hpc)
-        for column in range(len(self.hpc_info.hpc_plots)):
-            for row in range(len(self.hpc_info.hpc_plots[0])):
-                self.gridLayout_hpc_info.addWidget(self.hpc_info.hpc_plots[column][row], row, column)
+        self.integrate_all()
 
     def setup_combobox_system_info(self):
         self.comboBox_system_info.addItems(UI_Wrapped.combobox_system_info_options)
@@ -461,20 +458,10 @@ class UI_Wrapped(Ui_MainWindow):
     def retranslateUi(self, MainWindow):
         super().retranslateUi(MainWindow)
 
-    def update_cpu_perc(self):
-        self.cpu_perc_info.change_info()
+    def integrate_all(self):
+        for elem in self.elements:
+            elem.integrate(self)
 
-    def update_cpu_extra_info(self):
-        self.cpu_e_i.change_info()
-
-    def update_memory_info(self):
-        self.mem_info.change_info()
-
-    def update_net_info(self):
-        self.net_info.change_info()
-
-    def update_processes_info(self):
-        self.proc_info.change_info()
-
-    def update_hpc_info(self):
-        self.hpc_info.change_info()
+    def update_all(self):
+        for elem in self.elements:
+            elem.change_info()
