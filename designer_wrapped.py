@@ -38,6 +38,7 @@ class CPU_Info:
         self.cpu_plots_data_lists = []
         self.cpu_plots_curves_list = []
         self.cpu_p_bars_list = []
+        self.qlabels_pbars = []
 
         for cpu in range(CPU_Info.nr_of_cpues):
             # setup real-time plots
@@ -54,6 +55,8 @@ class CPU_Info:
             temp_p_bar.setOrientation(QtCore.Qt.Vertical)
             self.cpu_p_bars_list.append(temp_p_bar)
 
+            self.qlabels_pbars.append(QtWidgets.QLabel())
+
     def integrate(self, wrapper):
         row = 0
         column = 0
@@ -65,8 +68,22 @@ class CPU_Info:
                 column -= 1
                 row += 1
 
+        col = 0
         for temp_p_bar in self.cpu_p_bars_list:
-            wrapper.horizontalLayout_cpu_progress_bars.addWidget(temp_p_bar)
+            wrapper.gridLayout_cpu_pbars.addWidget(temp_p_bar, 1, col)
+            col += 1
+
+        col = 0
+        for temp_qlabel in self.qlabels_pbars:
+            wrapper.gridLayout_cpu_pbars.addWidget(temp_qlabel, 2, col)
+            col += 1
+
+        newfont = QtGui.QFont()
+        newfont.setPointSize(8)
+        for col in range(CPU_Info.nr_of_cpues):
+            temp = QtWidgets.QLabel('CPU'+str(col))
+            temp.setFont(newfont)
+            wrapper.gridLayout_cpu_pbars.addWidget(temp, 0, col)
 
     def change_info(self, active_widget=False):
         cpu_perc_list = psutil.cpu_percent(interval=None, percpu=True)
@@ -76,6 +93,7 @@ class CPU_Info:
             if active_widget:
                 self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
                 self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
+                self.qlabels_pbars[cpu_index].setText(str(cpu_perc_list[cpu_index]))
 
 
 class CPU_Extra_Info:
