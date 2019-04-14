@@ -11,6 +11,8 @@ import sys
 from subprocess import PIPE, Popen
 from threading import Thread
 from queue import Queue, Empty
+import json
+import os
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -81,7 +83,7 @@ class CPU_Info:
         newfont = QtGui.QFont()
         newfont.setPointSize(8)
         for col in range(CPU_Info.nr_of_cpues):
-            temp = QtWidgets.QLabel('CPU'+str(col))
+            temp = QtWidgets.QLabel('CPU' + str(col))
             temp.setFont(newfont)
             wrapper.gridLayout_cpu_pbars.addWidget(temp, 0, col)
 
@@ -462,6 +464,8 @@ class UI_Wrapped(Ui_MainWindow):
 
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)
+        self.f = open('info_file.txt', 'a')
+
 
         self.elements = {}
         self.elements[0] = CPU_Info()
@@ -487,3 +491,6 @@ class UI_Wrapped(Ui_MainWindow):
                 value.change_info()
             else:
                 value.change_info(active_widget=True)
+
+        info_json = {'t': int(time())}
+        self.f.write(json.dumps(info_json))

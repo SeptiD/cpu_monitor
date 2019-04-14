@@ -1,3 +1,4 @@
 .idea/*
 __pycache__/*
 test_xdate.py
+info_file.txt
