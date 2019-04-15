@@ -96,6 +96,13 @@ class CPU_Info:
                 self.cpu_plots_curves_list[cpu_index].setData(y=self.cpu_plots_data_lists[cpu_index])
                 self.cpu_p_bars_list[cpu_index].setValue(cpu_perc_list[cpu_index])
                 self.qlabels_pbars[cpu_index].setText(str(cpu_perc_list[cpu_index]))
+        return self.create_json(cpu_perc_list)
+
+    def create_json(self, cpu_perc_list):
+        temp_json = {}
+        for cpu_idx in range(len(cpu_perc_list)):
+            temp_json[cpu_idx] = str(cpu_perc_list[cpu_idx])
+        return {'cpu_perc': temp_json}
 
 
 class CPU_Extra_Info:
@@ -150,6 +157,17 @@ class CPU_Extra_Info:
                 self.just_temperature_list[index].setValue(temperature_tuples[index].current)
                 self.just_temperature_list[index].setFormat(
                     'Core ' + str(index) + ' temperature: ' + str(temperature_tuples[index].current) + '°C')
+
+        return self.create_json(info_touple, temperature_tuples, battery_tuple)
+
+    def create_json(self, info_touple, temperature_tuples, battery_tuple):
+        temp_json = {'ctx_switches': info_touple.ctx_switches, 'intr': info_touple.interrupts,
+                     'sw_intr': info_touple.soft_interrupts, 'battery': round(battery_tuple.percent, 1)}
+
+        for index in range(len(temperature_tuples)):
+            temp_json['temperature' + str(index)] = temperature_tuples[index].current
+
+        return {'cpu_extra_info': temp_json}
 
 
 class Memory_Info:
@@ -427,18 +445,21 @@ class HPC_Info:
         # if not self.check:
         #     self.check = True
         # self.textEdit_hpc.append('-----------\n')
+        temp_json = {}
 
         while True:
             try:
                 # line = q.get_nowait()
                 line = self.q.get(timeout=.1)
                 # self.textEdit_hpc.append(line.decode('ascii'))
-                self.update_data(line)
+                cpu, value, hpc = self.update_data(line)
+                temp_json[str(cpu) + '_' + hpc] = value
             except Empty:
                 break
 
         if active_widget:
             self.update_curves()
+        return {'hpc_info': temp_json}
 
     def update_data(self, input_line):
         #  1.000418172 CPU1                40.462      r205
@@ -453,6 +474,8 @@ class HPC_Info:
             if hpc in hpc_val:
                 self.hpc_data[key][cpu].insert(0, value)
 
+        return cpu, value, hpc
+
     def update_curves(self):
         for idx in range(4):
             for idx2 in range(HPC_Info.cpu_count):
@@ -465,7 +488,6 @@ class UI_Wrapped(Ui_MainWindow):
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)
         self.f = open('info_file.txt', 'a')
-
 
         self.elements = {}
         self.elements[0] = CPU_Info()
@@ -486,11 +508,20 @@ class UI_Wrapped(Ui_MainWindow):
 
     def update_all(self):
         current_index = self.tabWidget.currentIndex()
-        for key, value in self.elements.items():
-            if key != current_index:
-                value.change_info()
-            else:
-                value.change_info(active_widget=True)
-
         info_json = {'t': int(time())}
+        tabs = []
+        for key, value in self.elements.items():
+            json_received = None
+            if key != current_index:
+                json_received = value.change_info()
+            else:
+                json_received = value.change_info(active_widget=True)
+
+            if json_received:
+                tabs.append(json_received)
+
+        if tabs:
+            info_json['tabs'] = tabs
+
         self.f.write(json.dumps(info_json))
+        self.f.write('\n')
