@@ -397,6 +397,12 @@ class HPC_Info:
     cpu_count = psutil.cpu_count()
 
     def __init__(self):
+        hpc_counters = {}
+
+        self.get_hpc_thread = utils.GetHPCInfoThread()
+        self.get_hpc_thread.finished_signal.connect(self.got_hpc)
+        self.get_hpc_thread.start()
+
         self.hpc_data = []
         self.hpc_plots = []
         self.hpc_curves = []
@@ -498,6 +504,11 @@ class HPC_Info:
         for idx in range(4):
             for idx2 in range(HPC_Info.cpu_count):
                 self.hpc_curves[idx][idx2].setData(y=self.hpc_data[idx][idx2])
+
+    def got_hpc(self, hpc_cnts):
+        self.hpc_counters = hpc_cnts
+        for elem in self.hpc_counters:
+            self.hpc_details_text.append(elem + '\n')
 
 
 class UI_Wrapped(Ui_MainWindow):
