@@ -402,6 +402,11 @@ class HPC_Info:
         self.hpc_curves = []
         self.hpc_codes = {0: 'r203', 1: 'r803', 2: 'r105', 3: 'r205'}
 
+        self.hpc_record_button = QtWidgets.QPushButton()
+        self.hpc_setup_comboboxes = []
+        self.hpc_set_button = QtWidgets.QPushButton()
+        self.hpc_details_text = QtWidgets.QTextEdit()
+
         self.init_hpc()
 
         self.perf_handler = None
@@ -432,6 +437,13 @@ class HPC_Info:
             self.hpc_plots.append(temp_plots_list)
             self.hpc_curves.append(temp_curves_list)
 
+        # init ui elements for setup part of hpc
+        self.hpc_record_button.setText('Record Mode')
+        self.hpc_set_button.setText('Set Counters')
+        self.hpc_details_text.setReadOnly(True)
+        for idx in range(4):
+            self.hpc_setup_comboboxes.append(QtWidgets.QComboBox())
+
     def start_popen(self):
         args = shlex.split('perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x ,')
         self.perf_handler = psutil.Popen(args, stderr=PIPE)
@@ -440,6 +452,12 @@ class HPC_Info:
         for column in range(len(self.hpc_plots)):
             for row in range(len(self.hpc_plots[0])):
                 wrapper.gridLayout_hpc_info.addWidget(self.hpc_plots[column][row], row, column)
+
+        wrapper.verticalLayout_hpc_config.addWidget(self.hpc_record_button)
+        for elem in self.hpc_setup_comboboxes:
+            wrapper.verticalLayout_hpc_config.addWidget(elem)
+        wrapper.verticalLayout_hpc_config.addWidget(self.hpc_set_button)
+        wrapper.verticalLayout_hpc_config.addWidget(self.hpc_details_text)
 
     def change_info(self, active_widget=False):
         # if not self.check:
@@ -483,7 +501,6 @@ class HPC_Info:
 
 
 class UI_Wrapped(Ui_MainWindow):
-    combobox_system_info_options = ['CPU PERCENTAGE', 'CPU INFO', 'MEMORY', 'NETWORK', 'PROCESSES']
 
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)

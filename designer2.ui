@@ -24,7 +24,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="tab_cpu_perc_plots">
        <attribute name="title">
@@ -87,10 +87,10 @@
        <attribute name="title">
         <string>Page</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_8">
-        <property name="topMargin">
-         <number>9</number>
-        </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,4">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_hpc_config"/>
+        </item>
         <item>
          <layout class="QGridLayout" name="gridLayout_hpc_info"/>
         </item>
