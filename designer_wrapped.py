@@ -13,6 +13,7 @@ from threading import Thread
 from queue import Queue, Empty
 import json
 import os
+from multiprocessing import Process
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -397,7 +398,8 @@ class HPC_Info:
     cpu_count = psutil.cpu_count()
 
     def __init__(self):
-        hpc_counters = {}
+        self.hpc_counters = {}
+        self.hpc_counters_keys = []
 
         self.get_hpc_thread = utils.GetHPCInfoThread()
         self.get_hpc_thread.finished_signal.connect(self.got_hpc)
@@ -406,7 +408,8 @@ class HPC_Info:
         self.hpc_data = []
         self.hpc_plots = []
         self.hpc_curves = []
-        self.hpc_codes = {0: 'r203', 1: 'r803', 2: 'r105', 3: 'r205'}
+        self.hpc_codes = {0: '', 1: '', 2: '', 3: ''}
+        self.hpc_codes_new = {}
 
         self.hpc_record_button = QtWidgets.QPushButton()
         self.hpc_setup_comboboxes = []
@@ -419,9 +422,7 @@ class HPC_Info:
         # self.textEdit_hpc = QtWidgets.QTextEdit()
         self.start_popen()
         self.q = Queue()
-        t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
-        t.daemon = True  # thread dies with the program
-        t.start()
+        self.t = None
 
         self.check = False
 
@@ -446,13 +447,28 @@ class HPC_Info:
         # init ui elements for setup part of hpc
         self.hpc_record_button.setText('Record Mode')
         self.hpc_set_button.setText('Set Counters')
+        self.hpc_set_button.clicked.connect(self.update_perf)
         self.hpc_details_text.setReadOnly(True)
         for idx in range(4):
-            self.hpc_setup_comboboxes.append(QtWidgets.QComboBox())
+            temp = QtWidgets.QComboBox()
+            self.hpc_setup_comboboxes.append(temp)
+            temp.currentIndexChanged.connect(self.combo_selection_change)
 
     def start_popen(self):
-        args = shlex.split('perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x ,')
-        self.perf_handler = psutil.Popen(args, stderr=PIPE)
+        if self.perf_handler:
+            self.perf_handler.kill()
+
+        events_str = ''
+        for _, val in self.hpc_codes.items():
+            if val:
+                events_str = events_str + '-e ' + val + ' '
+        if events_str:
+            args = shlex.split('perf stat ' + events_str + '-I 1000 -a -A -x ,')
+            self.perf_handler = psutil.Popen(args, stderr=PIPE)
+
+            self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
+            self.t.daemon = True  # thread dies with the program
+            self.t.start()
 
     def integrate(self, wrapper):
         for column in range(len(self.hpc_plots)):
@@ -473,11 +489,14 @@ class HPC_Info:
 
         while True:
             try:
-                # line = q.get_nowait()
-                line = self.q.get(timeout=.1)
-                # self.textEdit_hpc.append(line.decode('ascii'))
-                cpu, value, hpc = self.update_data(line)
-                temp_json[str(cpu) + '_' + hpc] = value
+                if self.q:
+                    # line = q.get_nowait()
+                    line = self.q.get(timeout=.1)
+                    # self.textEdit_hpc.append(line.decode('ascii'))
+                    cpu, value, hpc = self.update_data(line)
+                    temp_json[str(cpu) + '_' + hpc] = value
+                else:
+                    break
             except Empty:
                 break
 
@@ -507,8 +526,44 @@ class HPC_Info:
 
     def got_hpc(self, hpc_cnts):
         self.hpc_counters = hpc_cnts
-        for elem in self.hpc_counters:
-            self.hpc_details_text.append(elem + '\n')
+        self.hpc_counters_keys = [''] + list(hpc_cnts)
+        for combo in self.hpc_setup_comboboxes:
+            combo.addItems(self.hpc_counters_keys)
+
+    def combo_selection_change(self, index):
+        self.hpc_details_text.clear()
+        self.hpc_details_text.append('Current config:')
+        idx = 0
+        self.hpc_codes_new = {}
+        for combo in self.hpc_setup_comboboxes:
+            txt = combo.currentText()
+            if txt:
+                self.hpc_codes_new[idx] = self.get_code(txt)
+            else:
+                self.hpc_codes_new[idx] = ''
+            idx += 1
+
+        self.hpc_details_text.append(str(self.hpc_codes_new))
+
+        if index > 0:
+            key_set = self.hpc_counters_keys[index]
+            self.hpc_details_text.append(self.hpc_counters[key_set]['PublicDescription'])
+
+    def get_code(self, txt):
+        temp_json = self.hpc_counters[txt]
+        return 'r' + temp_json['EventCode'][2:] + temp_json['UMask'][2:]
+
+    def update_perf(self):
+        smth_changed = False
+        for new_elem_key, new_elem_val in self.hpc_codes_new.items():
+            if self.hpc_codes[new_elem_key] == new_elem_val:
+                continue
+            else:
+                smth_changed = True
+                self.hpc_codes[new_elem_key] = new_elem_val
+                self.hpc_data[new_elem_key] = [[], [], [], [], [], [], [], []]
+        if smth_changed:
+            self.start_popen()
 
 
 class UI_Wrapped(Ui_MainWindow):
