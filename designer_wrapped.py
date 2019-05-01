@@ -32,6 +32,41 @@ class TimeAxisItem(pg.AxisItem):
         return [datetime.utcfromtimestamp(value).strftime('%M:%S') for value in values]
 
 
+class Hpc_Dialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(QtWidgets.QDialog, self).__init__(parent)
+
+        layout = QtWidgets.QHBoxLayout(self)
+
+        setup_layout = QtWidgets.QVBoxLayout()
+
+        self.hpc_dlg_setup_comboboxes = []
+        for idx in range(4):
+            temp = QtWidgets.QComboBox()
+            self.hpc_dlg_setup_comboboxes.append(temp)
+            setup_layout.addWidget(temp)
+
+        self.hpc_dlg_check_per_cpu = QtWidgets.QCheckBox('Per CPU')
+        setup_layout.addWidget(self.hpc_dlg_check_per_cpu)
+
+        self.hpc_dlg_enter_button = QtWidgets.QPushButton('ENTER')
+        setup_layout.addWidget(self.hpc_dlg_check_per_cpu)
+
+        self.hpc_dlg_start_button = QtWidgets.QPushButton('START')
+        setup_layout.addWidget(self.hpc_dlg_start_button)
+
+        data_layout = QtWidgets.QVBoxLayout()
+
+        self.hpc_dlg_tree = QtWidgets.QTreeWidget()
+        data_layout.addWidget(self.hpc_dlg_tree)
+
+        self.hpc_dlg_bar = QtWidgets.QProgressBar()
+        data_layout.addWidget(self.hpc_dlg_bar)
+
+        layout.addLayout(setup_layout)
+        layout.addLayout(data_layout)
+        self.setWindowTitle('HPC Record')
+
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
 
@@ -446,6 +481,7 @@ class HPC_Info:
 
         # init ui elements for setup part of hpc
         self.hpc_record_button.setText('Record Mode')
+        self.hpc_record_button.clicked.connect(self.select_record)
         self.hpc_set_button.setText('Set Counters')
         self.hpc_set_button.clicked.connect(self.update_perf)
         self.hpc_details_text.setReadOnly(True)
@@ -459,11 +495,18 @@ class HPC_Info:
             self.perf_handler.kill()
 
         events_str = ''
-        for _, val in self.hpc_codes.items():
+        for key, val in self.hpc_codes.items():
             if val:
                 events_str = events_str + '-e ' + val + ' '
+                for plt_widget in self.hpc_plots[key]:
+                    plt_widget.hide()
+                    plt_widget.show()
+            else:
+                for plt_widget in self.hpc_plots[key]:
+                    plt_widget.hide()
         if events_str:
             args = shlex.split('perf stat ' + events_str + '-I 1000 -a -A -x ,')
+            # self.hpc_details_text.append(' '.join(args))
             self.perf_handler = psutil.Popen(args, stderr=PIPE)
 
             self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
@@ -532,9 +575,10 @@ class HPC_Info:
 
     def combo_selection_change(self, index):
         self.hpc_details_text.clear()
-        self.hpc_details_text.append('Current config:')
-        idx = 0
+        # self.hpc_details_text.append('Current config:')
+
         self.hpc_codes_new = {}
+        idx = 0
         for combo in self.hpc_setup_comboboxes:
             txt = combo.currentText()
             if txt:
@@ -543,7 +587,7 @@ class HPC_Info:
                 self.hpc_codes_new[idx] = ''
             idx += 1
 
-        self.hpc_details_text.append(str(self.hpc_codes_new))
+        # self.hpc_details_text.append(str(self.hpc_codes_new))
 
         if index > 0:
             key_set = self.hpc_counters_keys[index]
@@ -561,10 +605,16 @@ class HPC_Info:
             else:
                 smth_changed = True
                 self.hpc_codes[new_elem_key] = new_elem_val
-                self.hpc_data[new_elem_key] = [[], [], [], [], [], [], [], []]
+                self.hpc_data[new_elem_key] = []
+                for idx in range(HPC_Info.cpu_count):
+                    self.hpc_data[new_elem_key].append([])
+
         if smth_changed:
             self.start_popen()
 
+    def select_record(self):
+        dialog = Hpc_Dialog()
+        dialog.exec()
 
 class UI_Wrapped(Ui_MainWindow):
 
