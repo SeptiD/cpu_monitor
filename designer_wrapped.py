@@ -33,43 +33,55 @@ class TimeAxisItem(pg.AxisItem):
 
 
 class Hpc_Dialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, combo_list=None):
+    def __init__(self, parent=None, hpc_cnt=None):
         super(QtWidgets.QDialog, self).__init__(parent)
 
-        self.combo_list = combo_list
-        if not self.combo_list:
+        self.hpc_dlg_cnt = hpc_cnt
+        if not self.hpc_dlg_cnt:
             self.treat_no_hpc_counters()
         else:
+            self.hpc_dlg_cnt_keys = [''] + list(self.hpc_dlg_cnt)
             self.layout = QtWidgets.QHBoxLayout(self)
             self.setup_layout = QtWidgets.QVBoxLayout()
             self.hpc_dlg_setup_comboboxes = []
+            self.hpc_dlg_time = QtWidgets.QTimeEdit()
             self.hpc_dlg_check_per_cpu = QtWidgets.QCheckBox('Per CPU')
             self.hpc_dlg_enter_button = QtWidgets.QPushButton('ENTER')
             self.hpc_dlg_start_button = QtWidgets.QPushButton('START')
             self.data_layout = QtWidgets.QVBoxLayout()
+            self.hpc_dlg_header_labels = ['C0', 'C1', 'C2', 'C3', 'SECS', 'PER CPU']
             self.hpc_dlg_tree = QtWidgets.QTreeWidget()
             self.hpc_dlg_bar = QtWidgets.QProgressBar()
             self.init()
 
     def init(self):
+
+        self.hpc_dlg_tree.setHeaderLabels(self.hpc_dlg_header_labels)
+        self.hpc_dlg_tree.setSortingEnabled(False)
+
+        self.hpc_dlg_time.setDisplayFormat('hh:mm:ss')
+        self.hpc_dlg_time.setMinimumTime(QtCore.QTime(0, 0, 1))
+
+        self.hpc_dlg_enter_button.clicked.connect(self.enter_clicked)
+
         for idx in range(4):
             temp = QtWidgets.QComboBox()
-            temp.addItems(self.combo_list)
+            temp.addItems(self.hpc_dlg_cnt_keys)
             self.hpc_dlg_setup_comboboxes.append(temp)
             self.setup_layout.addWidget(temp)
 
+        self.setup_layout.addWidget(self.hpc_dlg_time)
         self.setup_layout.addWidget(self.hpc_dlg_check_per_cpu)
-
-        self.setup_layout.addWidget(self.hpc_dlg_check_per_cpu)
-
+        self.setup_layout.addWidget(self.hpc_dlg_enter_button)
         self.setup_layout.addWidget(self.hpc_dlg_start_button)
 
         self.data_layout.addWidget(self.hpc_dlg_tree)
-
         self.data_layout.addWidget(self.hpc_dlg_bar)
 
         self.layout.addLayout(self.setup_layout)
         self.layout.addLayout(self.data_layout)
+        # self.layout.setStretch(0, 1)
+        # self.layout.setStretch(1, 4)
         self.setWindowTitle('HPC Record')
 
     def treat_no_hpc_counters(self):
@@ -80,6 +92,26 @@ class Hpc_Dialog(QtWidgets.QDialog):
         # self.done(-1)
         # self.close()
         # self.reject()
+
+    def enter_clicked(self):
+        monit_data = []
+        for combo in self.hpc_dlg_setup_comboboxes:
+            monit_data.append(combo.currentText())
+        monit_data.append(self.time_to_sec())
+
+        if self.hpc_dlg_check_per_cpu.isChecked():
+            monit_data.append('True')
+        else:
+            monit_data.append('False')
+
+        temp_widget_item = QtWidgets.QTreeWidgetItem(self.hpc_dlg_tree, monit_data)
+
+    def time_to_sec(self):
+        hours = self.hpc_dlg_time.time().hour()
+        minutes = self.hpc_dlg_time.time().minute()
+        seconds = self.hpc_dlg_time.time().second()
+        return str((hours * 3600) + (minutes * 60) + seconds)
+
 
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
@@ -627,7 +659,7 @@ class HPC_Info:
             self.start_popen()
 
     def select_record(self):
-        dialog = Hpc_Dialog(combo_list=self.hpc_counters)
+        dialog = Hpc_Dialog(hpc_cnt=self.hpc_counters)
         dialog.exec()
 
 
