@@ -110,6 +110,13 @@ class Hpc_Dialog(QtWidgets.QDialog):
                 monit_data.append('False')
 
             temp_widget_item = QtWidgets.QTreeWidgetItem(self.hpc_dlg_tree, monit_data)
+        else:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText('No Hardware Performance Counters selected!')
+            msg.setWindowTitle('Hardware Performance Counters Monitor')
+            msg.exec()
+
 
     def time_to_sec(self):
         hours = self.hpc_dlg_time.time().hour()
@@ -135,7 +142,9 @@ class Hpc_Dialog(QtWidgets.QDialog):
         secs_passed = 0
 
         iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
+        no_values_in_tree = True
         while iterator.value():
+            no_values_in_tree = False
 
             line = iterator.value()
             self.hpc_dlg_tree.setCurrentItem(line)
@@ -166,6 +175,13 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
                 self.hpc_dlg_bar.setValue(0)
             iterator += 1
+
+        if no_values_in_tree:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setText('You need to add at least one Hardware Performance Counters monitor record!')
+            msg.setWindowTitle('Hardware Performance Counters Monitor')
+            msg.exec()
 
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setEnabled(True)
@@ -226,7 +242,8 @@ class Hpc_Dialog(QtWidgets.QDialog):
                             break
                     except Empty:
                         break
-                otf.write(json.dumps(temp_json) + '\n')
+                if temp_json:
+                    otf.write(json.dumps(temp_json) + '\n')
 
                 perc = int((cnt * 100) / secs_to_monitor)
                 self.hpc_dlg_bar.setValue(perc)
