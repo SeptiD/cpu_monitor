@@ -136,6 +136,12 @@ class Hpc_Dialog(QtWidgets.QDialog):
             self.hpc_dlg_tree.setFocus()
             lines_cnt += 1
             secs_to_monitor = line.text(self.hpc_dlg_header_labels.index('SECS'))
+            per_cpu = line.text(self.hpc_dlg_header_labels.index('PER CPU'))
+            if 'True' in per_cpu:
+                per_cpu = True
+            else:
+                per_cpu = False
+
             iterator += 1
 
             events_str = ''
@@ -146,9 +152,13 @@ class Hpc_Dialog(QtWidgets.QDialog):
                     events_str = events_str + '-e ' + self.get_code(temp_name) + ' '
 
             if events_str:
-                events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
-                print(events_str)
-                self.do_the_job(secs_to_monitor, events_str)
+                if per_cpu:
+                    events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
+                    print(events_str)
+                else:
+                    events_str = 'perf stat ' + events_str + '-I 1000 -a -x , sleep ' + secs_to_monitor + ' ; '
+
+                self.do_the_job(secs_to_monitor, events_str, per_cpu)
 
                 self.hpc_dlg_bar.setValue(0)
 
@@ -171,7 +181,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
         return total_time
 
-    def do_the_job(self, secs_to_monitor, events_str):
+    def do_the_job(self, secs_to_monitor, events_str, per_cpu):
         secs_to_monitor = int(secs_to_monitor)
 
         # total_time = 5
@@ -195,8 +205,13 @@ class Hpc_Dialog(QtWidgets.QDialog):
                     try:
                         if self.q:
                             line = self.q.get(timeout=.1)
-                            cpu, value, hpc = self.update_data(line)
-                            print(cnt, str(cpu), value, hpc)
+                            if per_cpu:
+                                cpu, value, hpc = self.update_data(line,per_cpu)
+                                print(cnt, str(cpu), value, hpc)
+                            else:
+                                value, hpc = self.update_data(line, per_cpu)
+                                print(cnt, 'all', value, hpc)
+
                         else:
                             break
                     except Empty:
@@ -204,7 +219,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
                 perc = int((cnt * 100) / secs_to_monitor)
                 self.hpc_dlg_bar.setValue(perc)
-                if cnt > secs_to_monitor:
+                if cnt >= secs_to_monitor:
                     self.perf_handler.kill()
                     return
                 cnt += 1
@@ -216,16 +231,20 @@ class Hpc_Dialog(QtWidgets.QDialog):
         temp_json = self.hpc_dlg_cnt[txt]
         return 'r' + temp_json['EventCode'][2:] + temp_json['UMask'][2:]
 
-    def update_data(self, input_line):
+    def update_data(self, input_line, per_cpu):
         #  1.000418172 CPU1                40.462      r205
         #  1.000472956,CPU5,25933,,r105,1000277655,100,00,,
         input_line = input_line.decode('utf-8').strip()
         splitted = input_line.split(',')
-        cpu = int(splitted[1][-1])
-        value = int(splitted[2])
-        hpc = splitted[4]
-
-        return cpu, value, hpc
+        if per_cpu:
+            cpu = int(splitted[1][-1])
+            value = int(splitted[2])
+            hpc = splitted[4]
+            return cpu, value, hpc
+        else:
+            value = int(splitted[1])
+            hpc = splitted[3]
+            return value, hpc
 
 
 class CPU_Info:
