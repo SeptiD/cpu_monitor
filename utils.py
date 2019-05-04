@@ -1,5 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import json
+import matplotlib.pyplot as plt
+
 
 class CustomProgressBar(QtWidgets.QProgressBar):
     th1 = 40
@@ -70,3 +72,34 @@ class GetHPCInfoThread(QtCore.QThread):
         # your logic here
         result = self.get_info_from_hpc_file()
         self.finished_signal.emit(result)
+
+
+class PlotHPCThread(QtCore.QThread):
+    finished_signal = QtCore.pyqtSignal(object)
+
+    def __init__(self, log_file_name):
+        QtCore.QThread.__init__(self)
+        self.log_file_name = log_file_name
+        self.data = {}
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        # your logic here
+        bins = 100
+
+        with open(self.log_file_name) as inf:
+            for line in inf:
+                temp_json = json.loads(line)
+                for key, value in temp_json.items():
+                    if key in self.data:
+                        self.data[key].append(value)
+                    else:
+                        self.data[key] = [value]
+
+        for key, value in self.data.items():
+            plt.hist(value, bins)
+            plt.title(key)
+            plt.savefig(self.log_file_name + '-' + key + '.png', dpi=200, bbox_inches='tight')
+            plt.close()

@@ -117,7 +117,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
             msg.setWindowTitle('Hardware Performance Counters Monitor')
             msg.exec()
 
-
     def time_to_sec(self):
         hours = self.hpc_dlg_time.time().hour()
         minutes = self.hpc_dlg_time.time().minute()
@@ -250,6 +249,9 @@ class Hpc_Dialog(QtWidgets.QDialog):
                 if cnt >= secs_to_monitor:
                     self.perf_handler.kill()
                     otf.close()
+                    create_plots = utils.PlotHPCThread(this_job_file)
+                    # self.create_plots.finished_signal.connect(self.what_i_want)
+                    create_plots.start()
                     return
                 cnt += 1
 
