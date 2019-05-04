@@ -24,7 +24,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>5</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_cpu_perc_plots">
        <attribute name="title">
@@ -85,7 +85,7 @@
       </widget>
       <widget class="QWidget" name="tab_hpc">
        <attribute name="title">
-        <string>Page</string>
+        <string>Hardware Performance Counters</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,4">
         <item>

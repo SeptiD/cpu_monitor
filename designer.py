@@ -97,7 +97,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menufile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -108,7 +108,7 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_memory_info), _translate("MainWindow", "Memory Info"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_net_info), _translate("MainWindow", "Networks Info"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_proc_info), _translate("MainWindow", "Processes Info"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_hpc), _translate("MainWindow", "Page"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_hpc), _translate("MainWindow", "Hardware Performance Counters"))
         self.menufile.setTitle(_translate("MainWindow", "File"))
         self.actionFIl.setText(_translate("MainWindow", "FIl"))
 
