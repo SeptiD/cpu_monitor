@@ -58,6 +58,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
     def init(self):
 
+
         self.hpc_dlg_tree.setHeaderLabels(self.hpc_dlg_header_labels)
         self.hpc_dlg_tree.setSortingEnabled(False)
 
@@ -86,8 +87,10 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.layout.addLayout(self.setup_layout)
         self.layout.addLayout(self.data_layout)
         # self.layout.setStretch(0, 1)
-        # self.layout.setStretch(1, 4)
+        # self.layout.setStretch(1, 10)
         self.setWindowTitle('HPC Record')
+        self.resize(1100, 200)
+
 
         self.q = Queue()
 
@@ -126,8 +129,12 @@ class Hpc_Dialog(QtWidgets.QDialog):
         secs_passed = 0
 
         iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
+        lines_cnt = 0
         while iterator.value():
             line = iterator.value()
+            self.hpc_dlg_tree.setCurrentItem(line)
+            self.hpc_dlg_tree.setFocus()
+            lines_cnt += 1
             secs_to_monitor = line.text(self.hpc_dlg_header_labels.index('SECS'))
             iterator += 1
 
@@ -177,7 +184,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
             # args = shlex.split(events_str)
             # self.perf_handler = psutil.Popen(args, stderr=PIPE)
             self.perf_handler = psutil.Popen(events_str, stderr=PIPE, shell=True)
-
 
             self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
             self.t.daemon = True  # thread dies with the program
