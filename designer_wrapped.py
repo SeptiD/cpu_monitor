@@ -820,6 +820,8 @@ class HPC_Info:
 
     def select_record(self):
         if self.hpc_counters:
+            if self.perf_handler:
+                self.perf_handler.kill()
             dialog = Hpc_Dialog(hpc_cnt=self.hpc_counters)
             dialog.exec()
         else:
