@@ -35,6 +35,7 @@ class TimeAxisItem(pg.AxisItem):
 
 
 class Hpc_Dialog(QtWidgets.QDialog):
+    out_folder = 'hpc_record_data'
     nr_of_registers = 4
 
     def __init__(self, parent=None, hpc_cnt=None):
@@ -57,7 +58,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.init()
 
     def init(self):
-
 
         self.hpc_dlg_tree.setHeaderLabels(self.hpc_dlg_header_labels)
         self.hpc_dlg_tree.setSortingEnabled(False)
@@ -91,7 +91,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.setWindowTitle('HPC Record')
         self.resize(1100, 200)
 
-
         self.q = Queue()
 
     def enter_clicked(self):
@@ -119,6 +118,13 @@ class Hpc_Dialog(QtWidgets.QDialog):
         return str((hours * 3600) + (minutes * 60) + seconds)
 
     def start_clicked(self):
+        if not os.path.exists(Hpc_Dialog.out_folder):
+            os.mkdir(Hpc_Dialog.out_folder)
+        this_record_folder = Hpc_Dialog.out_folder + '/' + str(
+            datetime.utcfromtimestamp(time()).strftime('%Y-%m-%d-%H-%M-%S')) + '-hpc_record'
+
+        os.mkdir(this_record_folder)
+
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setEnabled(False)
         self.hpc_dlg_time.setEnabled(False)
@@ -129,28 +135,26 @@ class Hpc_Dialog(QtWidgets.QDialog):
         secs_passed = 0
 
         iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
-        lines_cnt = 0
         while iterator.value():
+
             line = iterator.value()
             self.hpc_dlg_tree.setCurrentItem(line)
             self.hpc_dlg_tree.setFocus()
-            lines_cnt += 1
             secs_to_monitor = line.text(self.hpc_dlg_header_labels.index('SECS'))
             per_cpu = line.text(self.hpc_dlg_header_labels.index('PER CPU'))
+
             if 'True' in per_cpu:
                 per_cpu = True
             else:
                 per_cpu = False
 
-            iterator += 1
-
             events_str = ''
-
+            just_events = ''
             for idx in range(Hpc_Dialog.nr_of_registers):
                 temp_name = line.text(self.hpc_dlg_header_labels.index('C' + str(idx)))
                 if temp_name:
                     events_str = events_str + '-e ' + self.get_code(temp_name) + ' '
-
+                    just_events = just_events + self.get_code(temp_name)
             if events_str:
                 if per_cpu:
                     events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
@@ -158,9 +162,10 @@ class Hpc_Dialog(QtWidgets.QDialog):
                 else:
                     events_str = 'perf stat ' + events_str + '-I 1000 -a -x , sleep ' + secs_to_monitor + ' ; '
 
-                self.do_the_job(secs_to_monitor, events_str, per_cpu)
+                self.do_the_job(secs_to_monitor, events_str, per_cpu, this_record_folder, just_events)
 
                 self.hpc_dlg_bar.setValue(0)
+            iterator += 1
 
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setEnabled(True)
@@ -181,13 +186,12 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
         return total_time
 
-    def do_the_job(self, secs_to_monitor, events_str, per_cpu):
+    def do_the_job(self, secs_to_monitor, events_str, per_cpu, this_record_folder, just_events):
         secs_to_monitor = int(secs_to_monitor)
 
         # total_time = 5
         # total_events = 'perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 5 ; perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 10 ;'
         # total_events = 'perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 5'
-
         # events_str = 'perf stat -e r0801 -I 1000 -a -A -x , sleep 10 ;'
 
         if events_str:
@@ -200,27 +204,35 @@ class Hpc_Dialog(QtWidgets.QDialog):
             self.t.start()
 
             cnt = 0
+            this_job_file = this_record_folder + '/' + just_events + '-' + str(
+                datetime.utcfromtimestamp(time()).strftime('%Y-%m-%d-%H-%M-%S')) + '.log'
+            otf = open(this_job_file, 'a')
             while self.perf_handler.is_running():
+                temp_json = {}
                 while True:
                     try:
                         if self.q:
                             line = self.q.get(timeout=.1)
                             if per_cpu:
-                                cpu, value, hpc = self.update_data(line,per_cpu)
+                                cpu, value, hpc = self.update_data(line, per_cpu)
                                 print(cnt, str(cpu), value, hpc)
+                                temp_json[str(cpu) + '_' + hpc] = value
                             else:
                                 value, hpc = self.update_data(line, per_cpu)
+                                temp_json[hpc] = value
                                 print(cnt, 'all', value, hpc)
 
                         else:
                             break
                     except Empty:
                         break
+                otf.write(json.dumps(temp_json) + '\n')
 
                 perc = int((cnt * 100) / secs_to_monitor)
                 self.hpc_dlg_bar.setValue(perc)
                 if cnt >= secs_to_monitor:
                     self.perf_handler.kill()
+                    otf.close()
                     return
                 cnt += 1
 
