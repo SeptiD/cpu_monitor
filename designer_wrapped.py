@@ -123,8 +123,27 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.hpc_dlg_enter_button.setEnabled(False)
         self.hpc_dlg_start_button.setEnabled(False)
         total_time = self.calculate_total_time()
+        secs_passed = 0
 
-        self.do_the_job(total_time)
+        iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
+        while iterator.value():
+            line = iterator.value()
+            secs_to_monitor = line.text(self.hpc_dlg_header_labels.index('SECS'))
+            iterator += 1
+
+            events_str = ''
+
+            for idx in range(Hpc_Dialog.nr_of_registers):
+                temp_name = line.text(self.hpc_dlg_header_labels.index('C' + str(idx)))
+                if temp_name:
+                    events_str = events_str + '-e ' + self.get_code(temp_name) + ' '
+
+            if events_str:
+                events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
+                print(events_str)
+                self.do_the_job(secs_to_monitor, events_str)
+
+                self.hpc_dlg_bar.setValue(0)
 
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setEnabled(True)
@@ -145,33 +164,20 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
         return total_time
 
-    def do_the_job(self, total_time):
-        total_events = ''
-        iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
-        while iterator.value():
-            line = iterator.value()
-            secs_to_monitor = line.text(self.hpc_dlg_header_labels.index('SECS'))
-            iterator += 1
+    def do_the_job(self, secs_to_monitor, events_str):
+        secs_to_monitor = int(secs_to_monitor)
 
-            events_str = ''
-
-            for idx in range(Hpc_Dialog.nr_of_registers):
-                temp_name = line.text(self.hpc_dlg_header_labels.index('C' + str(idx)))
-                if temp_name:
-                    events_str = events_str + '-e ' + self.get_code(temp_name) + ' '
-
-            if events_str:
-                events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
-
-                total_events = total_events + events_str
-
-        # total_time = 15
+        # total_time = 5
         # total_events = 'perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 5 ; perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 10 ;'
+        # total_events = 'perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 5'
 
-        if total_events:
-            # args = shlex.split(total_events)
+        # events_str = 'perf stat -e r0801 -I 1000 -a -A -x , sleep 10 ;'
 
-            self.perf_handler = psutil.Popen(total_events, stderr=PIPE, shell=True)
+        if events_str:
+            # args = shlex.split(events_str)
+            # self.perf_handler = psutil.Popen(args, stderr=PIPE)
+            self.perf_handler = psutil.Popen(events_str, stderr=PIPE, shell=True)
+
 
             self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
             self.t.daemon = True  # thread dies with the program
@@ -190,9 +196,9 @@ class Hpc_Dialog(QtWidgets.QDialog):
                     except Empty:
                         break
 
-                perc = int((cnt * 100) / total_time)
+                perc = int((cnt * 100) / secs_to_monitor)
                 self.hpc_dlg_bar.setValue(perc)
-                if cnt > total_time:
+                if cnt > secs_to_monitor:
                     self.perf_handler.kill()
                     return
                 cnt += 1
@@ -207,7 +213,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
     def update_data(self, input_line):
         #  1.000418172 CPU1                40.462      r205
         #  1.000472956,CPU5,25933,,r105,1000277655,100,00,,
-        input_line = input_line.decode('ascii').strip()
+        input_line = input_line.decode('utf-8').strip()
         splitted = input_line.split(',')
         cpu = int(splitted[1][-1])
         value = int(splitted[2])
