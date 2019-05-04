@@ -21,6 +21,7 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 
 def enqueue_output(out, queue):
     for line in iter(out.readline, b''):
+        # print(line)
         queue.put(line)
     out.close()
 
@@ -88,6 +89,8 @@ class Hpc_Dialog(QtWidgets.QDialog):
         # self.layout.setStretch(1, 4)
         self.setWindowTitle('HPC Record')
 
+        self.q = Queue()
+
     def enter_clicked(self):
         monit_data = []
         no_hpc_selected = True
@@ -121,12 +124,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.hpc_dlg_start_button.setEnabled(False)
         total_time = self.calculate_total_time()
 
-        cnt = 0
-        while cnt <= total_time:
-            perc = int((cnt * 100) / total_time)
-            self.hpc_dlg_bar.setValue(perc)
-            cnt += 1
-            QtTest.QTest.qWait(1000)
+        self.do_the_job(total_time)
 
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setEnabled(True)
@@ -144,7 +142,78 @@ class Hpc_Dialog(QtWidgets.QDialog):
             item = iterator.value()
             total_time += int(item.text(self.hpc_dlg_header_labels.index('SECS')))
             iterator += 1
+
         return total_time
+
+    def do_the_job(self, total_time):
+        total_events = ''
+        iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
+        while iterator.value():
+            line = iterator.value()
+            secs_to_monitor = line.text(self.hpc_dlg_header_labels.index('SECS'))
+            iterator += 1
+
+            events_str = ''
+
+            for idx in range(Hpc_Dialog.nr_of_registers):
+                temp_name = line.text(self.hpc_dlg_header_labels.index('C' + str(idx)))
+                if temp_name:
+                    events_str = events_str + '-e ' + self.get_code(temp_name) + ' '
+
+            if events_str:
+                events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
+
+                total_events = total_events + events_str
+
+        # total_time = 15
+        # total_events = 'perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 5 ; perf stat -e r203 -e r803 -e r105 -e r205 -I 1000 -a -A -x , sleep 10 ;'
+
+        if total_events:
+            # args = shlex.split(total_events)
+
+            self.perf_handler = psutil.Popen(total_events, stderr=PIPE, shell=True)
+
+            self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
+            self.t.daemon = True  # thread dies with the program
+            self.t.start()
+
+            cnt = 0
+            while self.perf_handler.is_running():
+                while True:
+                    try:
+                        if self.q:
+                            line = self.q.get(timeout=.1)
+                            cpu, value, hpc = self.update_data(line)
+                            print(cnt, str(cpu), value, hpc)
+                        else:
+                            break
+                    except Empty:
+                        break
+
+                perc = int((cnt * 100) / total_time)
+                self.hpc_dlg_bar.setValue(perc)
+                if cnt > total_time:
+                    self.perf_handler.kill()
+                    return
+                cnt += 1
+
+                QtTest.QTest.qWait(1000)
+                print('still running')
+
+    def get_code(self, txt):
+        temp_json = self.hpc_dlg_cnt[txt]
+        return 'r' + temp_json['EventCode'][2:] + temp_json['UMask'][2:]
+
+    def update_data(self, input_line):
+        #  1.000418172 CPU1                40.462      r205
+        #  1.000472956,CPU5,25933,,r105,1000277655,100,00,,
+        input_line = input_line.decode('ascii').strip()
+        splitted = input_line.split(',')
+        cpu = int(splitted[1][-1])
+        value = int(splitted[2])
+        hpc = splitted[4]
+
+        return cpu, value, hpc
 
 
 class CPU_Info:
@@ -605,9 +674,6 @@ class HPC_Info:
         wrapper.verticalLayout_hpc_config.addWidget(self.hpc_details_text)
 
     def change_info(self, active_widget=False):
-        # if not self.check:
-        #     self.check = True
-        # self.textEdit_hpc.append('-----------\n')
         temp_json = {}
 
         while True:
