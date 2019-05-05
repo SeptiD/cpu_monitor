@@ -48,9 +48,16 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.setup_layout = QtWidgets.QVBoxLayout()
         self.hpc_dlg_setup_comboboxes = []
         self.hpc_dlg_time = QtWidgets.QTimeEdit()
+        self.hpc_dlg_details_text = QtWidgets.QTextEdit()
+
+
+        self.checks_layout = QtWidgets.QHBoxLayout()
         self.hpc_dlg_check_per_cpu = QtWidgets.QCheckBox('Per CPU')
+        self.hpc_dlg_check_create_plots = QtWidgets.QCheckBox('Create Plots')
+
         self.hpc_dlg_enter_button = QtWidgets.QPushButton('ENTER')
         self.hpc_dlg_start_button = QtWidgets.QPushButton('START')
+
         self.data_layout = QtWidgets.QVBoxLayout()
         self.hpc_dlg_header_labels = ['C0', 'C1', 'C2', 'C3', 'SECS', 'PER CPU']
         self.hpc_dlg_tree = QtWidgets.QTreeWidget()
@@ -67,10 +74,13 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.hpc_dlg_tree_action.triggered.connect(self.remove_row_from_tree)
         self.hpc_dlg_tree.addAction(self.hpc_dlg_tree_action)
 
+        self.hpc_dlg_details_text.setReadOnly(True)
+
         self.hpc_dlg_time.setDisplayFormat('hh:mm:ss')
         self.hpc_dlg_time.setMinimumTime(QtCore.QTime(0, 0, 1))
 
         self.hpc_dlg_check_per_cpu.setChecked(True)
+        self.hpc_dlg_check_create_plots.setChecked(True)
 
         self.hpc_dlg_enter_button.clicked.connect(self.enter_clicked)
         self.hpc_dlg_start_button.clicked.connect(self.start_clicked)
@@ -78,11 +88,17 @@ class Hpc_Dialog(QtWidgets.QDialog):
         for idx in range(4):
             temp = QtWidgets.QComboBox()
             temp.addItems(self.hpc_dlg_cnt_keys)
+            temp.currentTextChanged.connect(self.hpc_dlg_combo_change)
             self.hpc_dlg_setup_comboboxes.append(temp)
             self.setup_layout.addWidget(temp)
 
         self.setup_layout.addWidget(self.hpc_dlg_time)
-        self.setup_layout.addWidget(self.hpc_dlg_check_per_cpu)
+        self.setup_layout.addWidget(self.hpc_dlg_details_text)
+
+        self.checks_layout.addWidget(self.hpc_dlg_check_per_cpu)
+        self.checks_layout.addWidget(self.hpc_dlg_check_create_plots)
+        self.setup_layout.addLayout(self.checks_layout)
+
         self.setup_layout.addWidget(self.hpc_dlg_enter_button)
         self.setup_layout.addWidget(self.hpc_dlg_start_button)
 
@@ -254,9 +270,10 @@ class Hpc_Dialog(QtWidgets.QDialog):
                 if cnt >= secs_to_monitor:
                     self.perf_handler.kill()
                     otf.close()
-                    create_plots = utils.PlotHPCThread(this_job_file)
-                    # self.create_plots.finished_signal.connect(self.what_i_want)
-                    create_plots.start()
+                    if self.hpc_dlg_check_create_plots.isChecked():
+                        create_plots = utils.PlotHPCThread(this_job_file)
+                        # self.create_plots.finished_signal.connect(self.what_i_want)
+                        create_plots.start()
                     return
                 cnt += 1
 
@@ -286,6 +303,10 @@ class Hpc_Dialog(QtWidgets.QDialog):
         my_item = self.hpc_dlg_tree.currentItem()
         idx = self.hpc_dlg_tree.indexOfTopLevelItem(my_item)
         self.hpc_dlg_tree.takeTopLevelItem(idx)
+
+    def hpc_dlg_combo_change(self, text):
+        self.hpc_dlg_details_text.clear()
+        self.hpc_dlg_details_text.append(self.hpc_dlg_cnt[text]['PublicDescription'])
 
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
