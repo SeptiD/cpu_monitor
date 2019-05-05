@@ -61,6 +61,11 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
         self.hpc_dlg_tree.setHeaderLabels(self.hpc_dlg_header_labels)
         self.hpc_dlg_tree.setSortingEnabled(False)
+        self.hpc_dlg_tree.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
+        self.hpc_dlg_tree_action = QtWidgets.QAction("Remove row", None)
+        self.hpc_dlg_tree_action.triggered.connect(self.remove_row_from_tree)
+        self.hpc_dlg_tree.addAction(self.hpc_dlg_tree_action)
 
         self.hpc_dlg_time.setDisplayFormat('hh:mm:ss')
         self.hpc_dlg_time.setMinimumTime(QtCore.QTime(0, 0, 1))
@@ -277,6 +282,10 @@ class Hpc_Dialog(QtWidgets.QDialog):
             hpc = splitted[3]
             return value, hpc
 
+    def remove_row_from_tree(self):
+        my_item = self.hpc_dlg_tree.currentItem()
+        idx = self.hpc_dlg_tree.indexOfTopLevelItem(my_item)
+        self.hpc_dlg_tree.takeTopLevelItem(idx)
 
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
@@ -608,14 +617,14 @@ class Processes_Info:
         now_pids = set()
         for proc in psutil.process_iter(attrs=self.header_labels):
             proc_dict = proc.info
-            proc_dict['cpu_percent'] = proc_dict['cpu_percent'] / Processes_Info.nr_of_cpues
+            proc_dict['cpu_percent'] = proc_dict['cpu_percent'] #/ Processes_Info.nr_of_cpues
             proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime('%Y-%m-%d %H:%M:%S')
             proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
             temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
 
             if active_widget:
                 if proc_dict['pid'] not in self.processes_rows.keys():
-                    temp_widget_item = QtWidgets.QTreeWidgetItem(self.treeview_processes_info, temp_list)
+                    temp_widget_item = utils.ProcessTreeWidgetItem(self.treeview_processes_info, temp_list)
                     self.processes_rows[proc_dict['pid']] = temp_widget_item
                 else:
                     temp_widget_item = self.processes_rows[proc_dict['pid']]

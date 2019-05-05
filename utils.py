@@ -116,3 +116,14 @@ class PlotHPCThread(QtCore.QThread):
 
             plt.savefig(self.log_file_name + '-' + key + '.png')
             plt.close()
+
+# re-implement the QTreeWidgetItem
+class ProcessTreeWidgetItem(QtWidgets.QTreeWidgetItem):
+    def __lt__(self, other):
+        column = self.treeWidget().sortColumn()
+        key1 = self.text(column)
+        key2 = other.text(column)
+        try:
+            return float(key1) < float(key2)
+        except ValueError:
+            return key1 < key2
