@@ -156,6 +156,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
             combo.setEnabled(False)
         self.hpc_dlg_time.setEnabled(False)
         self.hpc_dlg_check_per_cpu.setEnabled(False)
+        self.hpc_dlg_check_create_plots.setEnabled(False)
         self.hpc_dlg_enter_button.setEnabled(False)
         self.hpc_dlg_start_button.setEnabled(False)
         total_time = self.calculate_total_time()
@@ -207,10 +208,15 @@ class Hpc_Dialog(QtWidgets.QDialog):
             combo.setEnabled(True)
         self.hpc_dlg_time.setEnabled(True)
         self.hpc_dlg_check_per_cpu.setEnabled(True)
+        self.hpc_dlg_check_create_plots.setEnabled(True)
         self.hpc_dlg_enter_button.setEnabled(True)
         self.hpc_dlg_start_button.setEnabled(True)
         self.hpc_dlg_tree.clear()
         self.hpc_dlg_bar.setValue(0)
+
+        for combo in self.hpc_dlg_setup_comboboxes:
+            combo.setCurrentIndex(0)
+
 
     def calculate_total_time(self):
         total_time = 0
@@ -306,7 +312,8 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
     def hpc_dlg_combo_change(self, text):
         self.hpc_dlg_details_text.clear()
-        self.hpc_dlg_details_text.append(self.hpc_dlg_cnt[text]['PublicDescription'])
+        if text in self.hpc_dlg_cnt:
+            self.hpc_dlg_details_text.append(self.hpc_dlg_cnt[text]['PublicDescription'])
 
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
