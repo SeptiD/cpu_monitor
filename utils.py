@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class CustomProgressBar(QtWidgets.QProgressBar):
@@ -99,7 +100,19 @@ class PlotHPCThread(QtCore.QThread):
                         self.data[key] = [value]
 
         for key, value in self.data.items():
-            plt.hist(value, bins)
-            plt.title(key)
-            plt.savefig(self.log_file_name + '-' + key + '.png', dpi=200, bbox_inches='tight')
+            f, axarr = plt.subplots(3)
+            f.tight_layout()
+            axarr[0].hist(value, bins)
+            axarr[0].set_title(key + ' - histogram')
+
+            axarr[1].boxplot(value)
+            axarr[1].set_title(key + ' - boxplot')
+            axarr[1].yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+
+            x = np.linspace(0, len(value) - 1, num=len(value))
+            y = np.array(value)
+            axarr[2].plot(x, y)
+            axarr[2].set_title(key + ' - plot')
+
+            plt.savefig(self.log_file_name + '-' + key + '.png')
             plt.close()
