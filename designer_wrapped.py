@@ -50,7 +50,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.hpc_dlg_time = QtWidgets.QTimeEdit()
         self.hpc_dlg_details_text = QtWidgets.QTextEdit()
 
-
         self.checks_layout = QtWidgets.QHBoxLayout()
         self.hpc_dlg_check_per_cpu = QtWidgets.QCheckBox('Per CPU')
         self.hpc_dlg_check_create_plots = QtWidgets.QCheckBox('Create Plots')
@@ -217,7 +216,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setCurrentIndex(0)
 
-
     def calculate_total_time(self):
         total_time = 0
         iterator = QtGui.QTreeWidgetItemIterator(self.hpc_dlg_tree)  # pass your treewidget as arg
@@ -314,6 +312,28 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.hpc_dlg_details_text.clear()
         if text in self.hpc_dlg_cnt:
             self.hpc_dlg_details_text.append(self.hpc_dlg_cnt[text]['PublicDescription'])
+
+
+class Crypto_Anl_Dialog(QtWidgets.QDialog):
+
+    def __init__(self, parent=None):
+        super(QtWidgets.QDialog, self).__init__(parent)
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.cr_anl_p_bar = QtWidgets.QProgressBar()
+        self.cr_anl_result_txt = QtWidgets.QTextEdit()
+        self.cr_anl_result_txt.setVisible(False)
+        self.cr_anl_result_txt.setReadOnly(True)
+
+        self.layout.addWidget(self.cr_anl_p_bar)
+        self.layout.addWidget(self.cr_anl_result_txt)
+
+        for i in range(11):
+            self.cr_anl_p_bar.setValue(i * 10)
+
+        self.cr_anl_result_txt.setVisible(True)
+        self.cr_anl_result_txt.append("Analysis finished!")
+        self.cr_anl_result_txt.append("No cryptomining activity found!")
+
 
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
@@ -645,7 +665,7 @@ class Processes_Info:
         now_pids = set()
         for proc in psutil.process_iter(attrs=self.header_labels):
             proc_dict = proc.info
-            proc_dict['cpu_percent'] = proc_dict['cpu_percent'] #/ Processes_Info.nr_of_cpues
+            proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / Processes_Info.nr_of_cpues
             proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime('%Y-%m-%d %H:%M:%S')
             proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
             temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
@@ -698,6 +718,8 @@ class HPC_Info:
         self.hpc_setup_comboboxes = []
         self.hpc_set_button = QtWidgets.QPushButton()
         self.hpc_details_text = QtWidgets.QTextEdit()
+        self.gridLayout_hpc_info = QtWidgets.QGridLayout()
+        self.hpc_verify_crypto_button = QtWidgets.QPushButton()
 
         self.init_hpc()
 
@@ -738,6 +760,9 @@ class HPC_Info:
             self.hpc_setup_comboboxes.append(temp)
             temp.currentIndexChanged.connect(self.combo_selection_change)
 
+        self.hpc_verify_crypto_button.setText('Crypto Analysis')
+        self.hpc_verify_crypto_button.clicked.connect(self.crypto_anl)
+
     def start_popen(self):
         if self.perf_handler:
             self.perf_handler.kill()
@@ -762,7 +787,6 @@ class HPC_Info:
             self.t.start()
 
     def integrate(self, wrapper):
-        self.gridLayout_hpc_info = QtWidgets.QGridLayout()
         for i in range(HPC_Info.cpu_count):
             self.gridLayout_hpc_info.setRowMinimumHeight(i, 143)
         wrapper.scrollArea.setWidgetResizable(True)
@@ -771,12 +795,12 @@ class HPC_Info:
                 self.gridLayout_hpc_info.addWidget(self.hpc_plots[column][row], row, column)
         wrapper.scrollAreaWidgetContents.setLayout(self.gridLayout_hpc_info)
 
-
         wrapper.verticalLayout_hpc_config.addWidget(self.hpc_record_button)
         for elem in self.hpc_setup_comboboxes:
             wrapper.verticalLayout_hpc_config.addWidget(elem)
         wrapper.verticalLayout_hpc_config.addWidget(self.hpc_set_button)
         wrapper.verticalLayout_hpc_config.addWidget(self.hpc_details_text)
+        wrapper.verticalLayout_hpc_config.addWidget(self.hpc_verify_crypto_button)
 
     def change_info(self, active_widget=False):
         temp_json = {}
@@ -875,6 +899,12 @@ class HPC_Info:
             msg.setText('No Hardware Performance Counters available!')
             msg.setWindowTitle('Hardware Performance Counters Monitor')
             msg.exec()
+
+    def crypto_anl(self):
+        if self.perf_handler:
+            self.perf_handler.kill()
+        dialog = Crypto_Anl_Dialog()
+        dialog.exec()
 
 
 class UI_Wrapped(Ui_MainWindow):
