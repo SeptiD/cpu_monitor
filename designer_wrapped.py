@@ -762,9 +762,15 @@ class HPC_Info:
             self.t.start()
 
     def integrate(self, wrapper):
+        self.gridLayout_hpc_info = QtWidgets.QGridLayout()
+        for i in range(HPC_Info.cpu_count):
+            self.gridLayout_hpc_info.setRowMinimumHeight(i, 143)
+        wrapper.scrollArea.setWidgetResizable(True)
         for column in range(len(self.hpc_plots)):
             for row in range(len(self.hpc_plots[0])):
-                wrapper.gridLayout_hpc_info.addWidget(self.hpc_plots[column][row], row, column)
+                self.gridLayout_hpc_info.addWidget(self.hpc_plots[column][row], row, column)
+        wrapper.scrollAreaWidgetContents.setLayout(self.gridLayout_hpc_info)
+
 
         wrapper.verticalLayout_hpc_config.addWidget(self.hpc_record_button)
         for elem in self.hpc_setup_comboboxes:
