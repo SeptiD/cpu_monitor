@@ -187,7 +187,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
             if events_str:
                 if per_cpu:
                     events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + secs_to_monitor + ' ; '
-                    print(events_str)
+                    # print(events_str)
                 else:
                     events_str = 'perf stat ' + events_str + '-I 1000 -a -x , sleep ' + secs_to_monitor + ' ; '
 
@@ -215,6 +215,11 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
         for combo in self.hpc_dlg_setup_comboboxes:
             combo.setCurrentIndex(0)
+
+        plots_dialog = utils.Hpc_Dialog_Plots(plots_path=this_record_folder)
+        plots_dialog.exec()
+
+
 
     def calculate_total_time(self):
         total_time = 0
@@ -255,12 +260,12 @@ class Hpc_Dialog(QtWidgets.QDialog):
                             line = self.q.get(timeout=.1)
                             if per_cpu:
                                 cpu, value, hpc = self.update_data(line, per_cpu)
-                                print(cnt, str(cpu), value, hpc)
+                                # print(cnt, str(cpu), value, hpc)
                                 temp_json[str(cpu) + '_' + hpc] = value
                             else:
                                 value, hpc = self.update_data(line, per_cpu)
                                 temp_json[hpc] = value
-                                print(cnt, 'all', value, hpc)
+                                # print(cnt, 'all', value, hpc)
 
                         else:
                             break
@@ -275,14 +280,14 @@ class Hpc_Dialog(QtWidgets.QDialog):
                     self.perf_handler.kill()
                     otf.close()
                     if self.hpc_dlg_check_create_plots.isChecked():
-                        create_plots = utils.PlotHPCThread(this_job_file)
+                        create_plots = utils.PlotHPCThread(this_job_file, self.hpc_dlg_cnt)
                         # self.create_plots.finished_signal.connect(self.what_i_want)
                         create_plots.start()
                     return
                 cnt += 1
 
                 QtTest.QTest.qWait(1000)
-                print('still running')
+                # print('still running')
 
     def get_code(self, txt):
         temp_json = self.hpc_dlg_cnt[txt]
