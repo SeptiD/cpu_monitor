@@ -16,6 +16,7 @@ import os
 from multiprocessing import Process
 from PyQt5 import QtTest
 import pwd
+import platform
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -460,16 +461,23 @@ class CPU_Info:
 
             self.qlabels_pbars.append(QtWidgets.QLabel())
 
+            version_of_os = platform.uname().version
+            self.version_label = QtWidgets.QLabel(version_of_os)
+            self.version_label.setAlignment(QtCore.Qt.AlignCenter)
+            self.gridLayout_cpu_plots = QtWidgets.QGridLayout()
+
     def integrate(self, wrapper):
+        wrapper.verticalLayout_cpu_plots.addWidget(self.version_label)
         row = 0
         column = 0
         for temp_plot in self.cpu_plots_list:
-            wrapper.gridLayout_cpu_plots.addWidget(temp_plot, row, column)
+            self.gridLayout_cpu_plots.addWidget(temp_plot, row, column)
             if column == 0:
                 column += 1
             else:
                 column -= 1
                 row += 1
+        wrapper.verticalLayout_cpu_plots.addLayout(self.gridLayout_cpu_plots)
 
         col = 0
         for temp_p_bar in self.cpu_p_bars_list:
