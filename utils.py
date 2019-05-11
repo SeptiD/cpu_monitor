@@ -1,5 +1,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import json
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot
 import matplotlib.pyplot as plt
 import numpy as np
 import os
