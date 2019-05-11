@@ -40,8 +40,9 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None, hpc_cnt=None):
         super(QtWidgets.QDialog, self).__init__(parent)
-
         self.hpc_dlg_cnt = hpc_cnt
+        self.perf_handler = None
+        self.closed_request = False
 
         self.hpc_dlg_cnt_keys = [''] + list(self.hpc_dlg_cnt)
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -62,6 +63,12 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.hpc_dlg_tree = QtWidgets.QTreeWidget()
         self.hpc_dlg_bar = QtWidgets.QProgressBar()
         self.init()
+
+    def closeEvent(self, event):
+        self.closed_request = True
+        if self.perf_handler:
+            self.perf_handler.kill()
+        super(Hpc_Dialog, self).closeEvent(event)
 
     def init(self):
 
@@ -191,8 +198,9 @@ class Hpc_Dialog(QtWidgets.QDialog):
                 else:
                     events_str = 'perf stat ' + events_str + '-I 1000 -a -x , sleep ' + secs_to_monitor + ' ; '
 
-                self.do_the_job(secs_to_monitor, events_str, per_cpu, this_record_folder, just_events)
-
+                res = self.do_the_job(secs_to_monitor, events_str, per_cpu, this_record_folder, just_events)
+                if res == -1:
+                    return
                 self.hpc_dlg_bar.setValue(0)
             iterator += 1
 
@@ -218,8 +226,6 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
         plots_dialog = utils.Hpc_Dialog_Plots(plots_path=this_record_folder)
         plots_dialog.exec()
-
-
 
     def calculate_total_time(self):
         total_time = 0
@@ -253,6 +259,8 @@ class Hpc_Dialog(QtWidgets.QDialog):
                 datetime.utcfromtimestamp(time()).strftime('%Y-%m-%d-%H-%M-%S')) + '.log'
             otf = open(this_job_file, 'a')
             while self.perf_handler.is_running():
+                if self.closed_request:
+                    return -1
                 temp_json = {}
                 while True:
                     try:
@@ -283,7 +291,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
                         create_plots = utils.PlotHPCThread(this_job_file, self.hpc_dlg_cnt)
                         # self.create_plots.finished_signal.connect(self.what_i_want)
                         create_plots.start()
-                    return
+                    return 0
                 cnt += 1
 
                 QtTest.QTest.qWait(1000)
