@@ -15,6 +15,7 @@ import json
 import os
 from multiprocessing import Process
 from PyQt5 import QtTest
+import pwd
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -570,6 +571,25 @@ class CPU_Extra_Info:
         return {'cpu_extra_info': temp_json}
 
 
+class Users:
+    def __init__(self):
+        self.header_labels = ['name', 'uid', 'gid', 'home directory', 'shell']
+        self.treeview_users_info = QtWidgets.QTreeWidget()
+        self.treeview_users_info.setHeaderLabels(self.header_labels)
+        self.treeview_users_info.setSortingEnabled(True)
+
+        users = pwd.getpwall()
+        for user in users:
+            temp_list = [user.pw_name, str(user.pw_uid), str(user.pw_gid), user.pw_dir, user.pw_shell]
+            utils.ProcessTreeWidgetItem(self.treeview_users_info, temp_list)
+
+    def integrate(self, wrapper):
+        wrapper.verticalLayout_users.addWidget(self.treeview_users_info)
+
+    def change_info(self, active_widget=False):
+        pass
+
+
 class Memory_Info:
     def __init__(self):
         self.header_labels = ['device', 'mountpoint', 'fstype', 'opts']
@@ -803,7 +823,6 @@ class Processes_Info:
             msg.setWindowTitle('Process Information')
             msg.exec()
 
-
     def trace_proc(self):
         my_item = self.treeview_processes_info.currentItem()
         pid = int(my_item.text(0))
@@ -1030,10 +1049,11 @@ class UI_Wrapped(Ui_MainWindow):
         self.elements = {}
         self.elements[0] = CPU_Info()
         self.elements[1] = CPU_Extra_Info()
-        self.elements[2] = Memory_Info()
-        self.elements[3] = Network_Info()
-        self.elements[4] = Processes_Info()
-        self.elements[5] = HPC_Info()
+        self.elements[2] = Users()
+        self.elements[3] = Memory_Info()
+        self.elements[4] = Network_Info()
+        self.elements[5] = Processes_Info()
+        self.elements[6] = HPC_Info()
 
         self.integrate_all()
 

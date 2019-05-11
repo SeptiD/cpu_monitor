@@ -53,6 +53,16 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_users">
+       <attribute name="title">
+        <string>Users</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_users"/>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="tab_memory_info">
        <attribute name="title">
         <string>Memory Info</string>

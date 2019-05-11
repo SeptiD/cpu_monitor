@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'designer2.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.1
+# Created by: PyQt5 UI code generator 5.12.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -43,6 +43,14 @@ class Ui_MainWindow(object):
         self.verticalLayout_cpu_extra_info.setObjectName("verticalLayout_cpu_extra_info")
         self.verticalLayout_4.addLayout(self.verticalLayout_cpu_extra_info)
         self.tabWidget.addTab(self.tab_extra_info, "")
+        self.tab_users = QtWidgets.QWidget()
+        self.tab_users.setObjectName("tab_users")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tab_users)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.verticalLayout_users = QtWidgets.QVBoxLayout()
+        self.verticalLayout_users.setObjectName("verticalLayout_users")
+        self.verticalLayout_3.addLayout(self.verticalLayout_users)
+        self.tabWidget.addTab(self.tab_users, "")
         self.tab_memory_info = QtWidgets.QWidget()
         self.tab_memory_info.setObjectName("tab_memory_info")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.tab_memory_info)
@@ -110,6 +118,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "CPU Monitor"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_cpu_perc_plots), _translate("MainWindow", "CPU %"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_extra_info), _translate("MainWindow", "Extra Info"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_users), _translate("MainWindow", "Users"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_memory_info), _translate("MainWindow", "Memory Info"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_net_info), _translate("MainWindow", "Networks Info"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_proc_info), _translate("MainWindow", "Processes Info"))
