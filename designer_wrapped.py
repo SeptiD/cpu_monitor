@@ -348,6 +348,89 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
         self.cr_anl_result_txt.append("No cryptomining activity found!")
 
 
+class Trace_pid_Dialog(QtWidgets.QDialog):
+    command_bgn = 'perf stat -e branches -e branch-misses -e cache-misses -e cache-references -p '
+    command_end = ' -I 1000 -x ,'
+
+    def __init__(self, parent=None, pid=None):
+        super(QtWidgets.QDialog, self).__init__(parent)
+        self.pid = pid
+        self.perf_command = Trace_pid_Dialog.command_bgn + str(self.pid) + Trace_pid_Dialog.command_end
+        self.perf_handler = None
+
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.text_edit = QtWidgets.QTextEdit()
+        self.text_edit.setReadOnly(True)
+
+        # self.layout.addWidget(self.text_edit)
+
+        self.data_dict = {'branches': [], 'branch-misses': [], 'cache-references': [], 'cache-misses': []}
+        self.curves_dict = {}
+        self.branch_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='Branch Info')
+        self.branch_plot.setXRange(0, 60)
+        self.branch_plot.addLegend()
+        self.curves_dict['branches'] = self.branch_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0),
+                                                             symbolPen='w', name='branches')
+        self.curves_dict['branch-misses'] = self.branch_plot.plot(pen=(200, 200, 200), symbolBrush=(0, 0, 255),
+                                                                  symbolPen='w', name='branch-misses')
+
+        self.caches_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='Caches Info')
+        self.caches_plot.setXRange(0, 60)
+        self.caches_plot.addLegend()
+        self.curves_dict['cache-references'] = self.caches_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0),
+                                                                     symbolPen='w', name='cache-references')
+        self.curves_dict['cache-misses'] = self.caches_plot.plot(pen=(200, 200, 200), symbolBrush=(0, 0, 255),
+                                                                 symbolPen='w', name='cache-misses')
+
+        self.layout.addWidget(self.branch_plot)
+        self.layout.addWidget(self.caches_plot)
+
+        self.q = Queue()
+
+        self.init_tracing()
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.read_from_perf)
+        self.timer.start(1000)
+
+    def init_tracing(self):
+        self.perf_handler = psutil.Popen(self.perf_command, stderr=PIPE, shell=True)
+
+        self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
+        self.t.daemon = True  # thread dies with the program
+        self.t.start()
+
+    def read_from_perf(self):
+        while True:
+            try:
+                if self.q:
+                    line = self.q.get(timeout=.1)
+                    line = line.decode('utf-8').strip()
+                    if 'Error' in line:
+                        msg = QtWidgets.QMessageBox()
+                        msg.setIcon(QtWidgets.QMessageBox.Critical)
+                        msg.setText('This process cannot be monitored!')
+                        msg.setWindowTitle('Process Information')
+                        msg.exec()
+                        self.reject()
+                        return
+
+                    splitted = line.split(',')
+                    val = splitted[1]
+                    name = splitted[3]
+                    if '<not counted>' not in val:
+                        # self.text_edit.append(val + ' ' + name + '\n')
+                        self.data_dict[name].insert(0, int(val))
+                else:
+                    break
+            except Empty:
+                self.update_plots()
+                break
+
+    def update_plots(self):
+        for key, value in self.curves_dict.items():
+            value.setData(self.data_dict[key])
+
+
 class CPU_Info:
     nr_of_cpues = psutil.cpu_count()
 
@@ -664,6 +747,10 @@ class Processes_Info:
         self.treeview_processes_info.setSortingEnabled(True)
         self.treeview_processes_info.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
+        self.trace_process_action = QtWidgets.QAction("Trace process", None)
+        self.trace_process_action.triggered.connect(self.trace_proc)
+        self.treeview_processes_info.addAction(self.trace_process_action)
+
         self.kill_process_action = QtWidgets.QAction("Kill process", None)
         self.kill_process_action.triggered.connect(self.kill_proc)
         self.treeview_processes_info.addAction(self.kill_process_action)
@@ -706,8 +793,22 @@ class Processes_Info:
     def kill_proc(self):
         my_item = self.treeview_processes_info.currentItem()
         pid = int(my_item.text(0))
-        p = psutil.Process(pid)
-        p.terminate()
+        try:
+            p = psutil.Process(pid)
+            p.terminate()
+        except psutil.AccessDenied:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText('This process cannot be terminated!')
+            msg.setWindowTitle('Process Information')
+            msg.exec()
+
+
+    def trace_proc(self):
+        my_item = self.treeview_processes_info.currentItem()
+        pid = int(my_item.text(0))
+        dialog = Trace_pid_Dialog(pid=pid)
+        dialog.exec()
 
 
 class HPC_Info:
