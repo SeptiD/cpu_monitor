@@ -873,6 +873,10 @@ class HPC_Info:
         self.check = False
 
     def init_hpc(self):
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(1)
+        size_policy.setVerticalStretch(1)
+
         for idx in range(4):
             temp_data_list = []
             temp_plots_list = []
@@ -882,6 +886,7 @@ class HPC_Info:
 
                 title = 'CPU ' + str(idx2) + ' - ' + self.hpc_codes[idx]
                 temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title=title)
+                temp_plot.setSizePolicy(size_policy)
                 temp_plot.setXRange(0, 60)
                 temp_plots_list.append(temp_plot)
                 temp_curves_list.append(temp_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0), symbolPen='w'))
