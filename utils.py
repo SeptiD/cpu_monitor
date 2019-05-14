@@ -93,7 +93,7 @@ class PlotHPCThread(QtCore.QThread):
 
     def get_title(self, code):
         for key, value in self.hpc_cnts.items():
-            if code[-4:-2] in value['EventCode'] and code[-2:] in value['UMask']:
+            if code[-4:-2] in value['UMask'] and code[-2:] in value['EventCode']:
                 return key + '-' + code
 
     def run(self):

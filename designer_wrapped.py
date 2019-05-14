@@ -17,6 +17,9 @@ from multiprocessing import Process
 from PyQt5 import QtTest
 import pwd
 import platform
+from keras.models import load_model
+import numpy as np
+import pickle
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -259,6 +262,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
             cnt = 0
             this_job_file = this_record_folder + '/' + just_events + '-' + str(
                 datetime.utcfromtimestamp(time()).strftime('%Y-%m-%d-%H-%M-%S')) + '.log'
+            print(this_job_file)
             otf = open(this_job_file, 'a')
             while self.perf_handler.is_running():
                 if self.closed_request:
@@ -301,7 +305,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
     def get_code(self, txt):
         temp_json = self.hpc_dlg_cnt[txt]
-        return 'r' + temp_json['EventCode'][2:] + temp_json['UMask'][2:]
+        return 'r' + temp_json['UMask'][2:] + temp_json['EventCode'][2:]
 
     def update_data(self, input_line, per_cpu):
         #  1.000418172 CPU1                40.462      r205
@@ -330,24 +334,124 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
 
 class Crypto_Anl_Dialog(QtWidgets.QDialog):
+    scaler_file = './ai/scaler.save'
+    feat_file = './ai/sel_nn_features.txt'
+    model_file = './ai/sel_nn_save.h5'
+    secs_to_monitor = '5'
+    nr_of_cpu = psutil.cpu_count()
 
     def __init__(self, parent=None):
         super(QtWidgets.QDialog, self).__init__(parent)
         self.layout = QtWidgets.QVBoxLayout(self)
+
+        self.cr_anl_start_btn = QtWidgets.QPushButton('Start!')
+        self.cr_anl_start_btn.clicked.connect(self.start_pushed)
+
         self.cr_anl_p_bar = QtWidgets.QProgressBar()
-        self.cr_anl_result_txt = QtWidgets.QTextEdit()
-        self.cr_anl_result_txt.setVisible(False)
-        self.cr_anl_result_txt.setReadOnly(True)
 
+        self.cr_anl_txt = QtWidgets.QTextEdit()
+        self.cr_anl_txt.setReadOnly(True)
+        self.cr_anl_txt.append("Crypto Analysis")
+
+        self.layout.addWidget(self.cr_anl_start_btn)
         self.layout.addWidget(self.cr_anl_p_bar)
-        self.layout.addWidget(self.cr_anl_result_txt)
+        self.layout.addWidget(self.cr_anl_txt)
 
-        for i in range(11):
-            self.cr_anl_p_bar.setValue(i * 10)
+        self.q = Queue()
+        self.data = {}
 
-        self.cr_anl_result_txt.setVisible(True)
-        self.cr_anl_result_txt.append("Analysis finished!")
-        self.cr_anl_result_txt.append("No cryptomining activity found!")
+    def start_pushed(self):
+        self.cr_anl_txt.append('Start Analisys...')
+        self.cr_anl_txt.append('Getting features...')
+
+        temp_line = ''
+        with open(Crypto_Anl_Dialog.feat_file) as inf:
+            temp_line = inf.readline().strip()
+
+        feats = [x.strip() for x in temp_line.split()]
+        feats_copy = list.copy(feats)
+
+        for i in range(Crypto_Anl_Dialog.nr_of_cpu):
+            temp_feat_dict = {}
+            for feat in feats:
+                temp_feat_dict[feat] = []
+            self.data[i] = temp_feat_dict
+
+        self.cr_anl_txt.append(str(feats))
+
+        while feats:
+            this_batch = feats[:4]
+            print(this_batch)
+            del feats[:4]
+            events_str = ''
+            for one_feat in this_batch:
+                events_str = events_str + '-e ' + one_feat + ' '
+            events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + Crypto_Anl_Dialog.secs_to_monitor + ' ; '
+            self.cr_anl_txt.append(events_str)
+            print(events_str)
+
+            self.perf_handler = psutil.Popen(events_str, stderr=PIPE, shell=True)
+
+            self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
+            self.t.daemon = True  # thread dies with the program
+            self.t.start()
+
+            cnt = 0
+            while self.perf_handler.is_running():
+                while True:
+                    try:
+                        if self.q:
+                            line = self.q.get(timeout=.1)
+                            cpu, value, hpc = self.update_data(line, True)
+                            self.data[cpu][hpc].append(value)
+                        else:
+                            break
+                    except Empty:
+                        break
+
+                if cnt >= int(Crypto_Anl_Dialog.secs_to_monitor):
+                    self.perf_handler.kill()
+                    break
+                cnt += 1
+                QtTest.QTest.qWait(1000)
+
+        self.cr_anl_txt.append(str(self.data))
+
+        # scaler_f = None
+        # with open(Crypto_Anl_Dialog.scaler_file, 'rb') as inf:
+        #     scaler_f = pickle.load(inf)
+        #
+        # model = load_model(Crypto_Anl_Dialog.model_file)
+        #
+        # for i in range(Crypto_Anl_Dialog.nr_of_cpu):
+        #     input = []
+        #     for j in range(int(Crypto_Anl_Dialog.secs_to_monitor)):
+        #         for feat in feats_copy:
+        #             input.append(self.data[i][feat][j])
+        #         input = np.array(input)
+        #         print(input)
+        #         input_scaled = scaler_f.transform(input)
+        #         print(i, j)
+        #         self.cr_anl_txt.append(str(i) + ' ' + str(j))
+        #         res = model.predict(input_scaled)
+        #         print(res)
+        #         self.cr_anl_txt.append(str(res))
+
+
+    def update_data(self, input_line, per_cpu):
+        #  1.000418172 CPU1                40.462      r205
+        #  1.000472956,CPU5,25933,,r105,1000277655,100,00,,
+        input_line = input_line.decode('utf-8').strip()
+        splitted = input_line.split(',')
+        if per_cpu:
+            cpu = int(splitted[1][-1])
+            value = int(splitted[2])
+            hpc = splitted[4]
+            return cpu, value, hpc
+        else:
+            value = int(splitted[1])
+            hpc = splitted[3]
+            return value, hpc
 
 
 class Trace_pid_Dialog(QtWidgets.QDialog):
@@ -1016,7 +1120,7 @@ class HPC_Info:
 
     def get_code(self, txt):
         temp_json = self.hpc_counters[txt]
-        return 'r' + temp_json['EventCode'][2:] + temp_json['UMask'][2:]
+        return 'r' + temp_json['UMask'][2:] + temp_json['EventCode'][2:]
 
     def update_perf(self):
         smth_changed = False
