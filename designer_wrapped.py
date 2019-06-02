@@ -139,7 +139,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
             else:
                 monit_data.append('False')
 
-            temp_widget_item = QtWidgets.QTreeWidgetItem(self.hpc_dlg_tree, monit_data)
+            QtWidgets.QTreeWidgetItem(self.hpc_dlg_tree, monit_data)
         else:
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Information)
@@ -618,22 +618,30 @@ class CPU_Info:
 
 
 class CPU_Extra_Info:
+    cpu_extra_info_dict = {'ctx_sw': 0, 'intr': 0, 'sw_intr': 0}
+
     def __init__(self):
         self.info_list = []
         self.p_bar_battery = utils.BatteryProgressBar()
         self.info_list.append(self.p_bar_battery)
 
         self.label_ctx_switches = QtWidgets.QLabel("Context Switches:")
+        self.label_ctx_sw_per_sec = QtWidgets.QLabel("Context Switches per sec:")
         self.label_interrupts = QtWidgets.QLabel("Interrupts:")
+        self.label_intr_per_sec = QtWidgets.QLabel("Interrupts per sec:")
         self.label_soft_interrupts = QtWidgets.QLabel("Soft Interrupts:")
+        self.label_sw_intr_per_sec = QtWidgets.QLabel("Soft Interrupts per sec:")
         self.label_up_time = QtWidgets.QLabel("Up time:")
         self.up_time = datetime.now().replace(microsecond=0) - datetime.fromtimestamp(psutil.boot_time())
 
         self.extra_cpu_info = QtWidgets.QGroupBox("CPU extra information:")
         self.vbox = QtWidgets.QVBoxLayout()
         self.vbox.addWidget(self.label_ctx_switches)
+        self.vbox.addWidget(self.label_ctx_sw_per_sec)
         self.vbox.addWidget(self.label_interrupts)
+        self.vbox.addWidget(self.label_intr_per_sec)
         self.vbox.addWidget(self.label_soft_interrupts)
+        self.vbox.addWidget(self.label_sw_intr_per_sec)
         self.vbox.addWidget(self.label_up_time)
 
         self.extra_cpu_info.setLayout(self.vbox)
@@ -655,11 +663,23 @@ class CPU_Extra_Info:
         battery_tuple = psutil.sensors_battery()
 
         if active_widget:
-            self.label_ctx_switches.setText("Context Switches:" + str(info_touple.ctx_switches))
-            self.label_interrupts.setText("Interrupts:" + str(info_touple.interrupts))
-            self.label_soft_interrupts.setText("Software Interrupts:" + str(info_touple.soft_interrupts))
+            self.label_ctx_switches.setText("Context Switches: " + str(info_touple.ctx_switches))
+            self.label_ctx_sw_per_sec.setText \
+                ("Context Switches per sec: " +
+                 str(info_touple.ctx_switches - CPU_Extra_Info.cpu_extra_info_dict['ctx_sw']))
+
+            self.label_interrupts.setText("Interrupts: " + str(info_touple.interrupts))
+            self.label_intr_per_sec.setText \
+                ("Interrupts per sec:" +
+                 str(info_touple.interrupts - CPU_Extra_Info.cpu_extra_info_dict['intr']))
+
+            self.label_soft_interrupts.setText("Software Interrupts: " + str(info_touple.soft_interrupts))
+            self.label_sw_intr_per_sec.setText \
+                ("Software Interrupts per sec: " +
+                 str(info_touple.soft_interrupts - CPU_Extra_Info.cpu_extra_info_dict['sw_intr']))
+
             self.up_time = self.up_time + timedelta(0, 1)
-            self.label_up_time.setText("Up Time:" + str(self.up_time))
+            self.label_up_time.setText("Up Time: " + str(self.up_time))
 
             self.p_bar_battery.setValue(battery_tuple.percent)
             self.p_bar_battery.setFormat("Battery: " + str(round(battery_tuple.percent, 1)) + '%')
@@ -669,6 +689,10 @@ class CPU_Extra_Info:
                 self.just_temperature_list[index].setValue(temperature_tuples[index].current)
                 self.just_temperature_list[index].setFormat(
                     'Core ' + str(index) + ' temperature: ' + str(temperature_tuples[index].current) + '°C')
+
+        CPU_Extra_Info.cpu_extra_info_dict['ctx_sw'] = info_touple.ctx_switches
+        CPU_Extra_Info.cpu_extra_info_dict['intr'] = info_touple.interrupts
+        CPU_Extra_Info.cpu_extra_info_dict['sw_intr'] = info_touple.soft_interrupts
 
         return self.create_json(info_touple, temperature_tuples, battery_tuple)
 
