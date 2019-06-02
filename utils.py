@@ -74,7 +74,6 @@ class GetHPCInfoThread(QtCore.QThread):
         return out_dict
 
     def run(self):
-        # your logic here
         result = self.get_info_from_hpc_file()
         self.finished_signal.emit(result)
 
@@ -97,7 +96,6 @@ class PlotHPCThread(QtCore.QThread):
                 return key + '-' + code
 
     def run(self):
-        # your logic here
         bins = 100
 
         with open(self.log_file_name) as inf:

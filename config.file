@@ -1,0 +1,16 @@
+apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+https://gist.github.com/ujjwal96/1dcd57542bdaf3c9d1b0dd526ccd44ff
+pip install --upgrade tensorflow
+pip install keras
+pip install matplotlib
+pip install scikit-learn
+pip install tqdm
+pip install pyqtgraph
+
+sudo apt install gcc
+pip install psutil
+
+To make this setting permanent, edit /etc/sysctl.conf too, e.g.:
+
+	kernel.perf_event_paranoid = -1
+sudo sh -c 'echo kernel.perf_event_paranoid=1 > /etc/sysctl.d/local.conf'

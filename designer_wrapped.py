@@ -6,14 +6,12 @@ from time import time
 from datetime import datetime, timedelta
 import psutil
 import shlex
-from subprocess import PIPE
 import sys
-from subprocess import PIPE, Popen
+from subprocess import PIPE
 from threading import Thread
 from queue import Queue, Empty
 import json
 import os
-from multiprocessing import Process
 from PyQt5 import QtTest
 import pwd
 import platform
@@ -334,10 +332,11 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
 
 class Crypto_Anl_Dialog(QtWidgets.QDialog):
-    scaler_file = './ai/scaler.save'
+    # scaler_file = './ai/scaler.save'
+    scaler_file = './ai/scaler_pck2.save'
     feat_file = './ai/sel_nn_features.txt'
     model_file = './ai/sel_nn_save.h5'
-    secs_to_monitor = '5'
+    secs_to_monitor = '3'
     nr_of_cpu = psutil.cpu_count()
 
     def __init__(self, parent=None):
@@ -417,26 +416,26 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
 
         self.cr_anl_txt.append(str(self.data))
 
-        # scaler_f = None
-        # with open(Crypto_Anl_Dialog.scaler_file, 'rb') as inf:
-        #     scaler_f = pickle.load(inf)
-        #
-        # model = load_model(Crypto_Anl_Dialog.model_file)
-        #
-        # for i in range(Crypto_Anl_Dialog.nr_of_cpu):
-        #     input = []
-        #     for j in range(int(Crypto_Anl_Dialog.secs_to_monitor)):
-        #         for feat in feats_copy:
-        #             input.append(self.data[i][feat][j])
-        #         input = np.array(input)
-        #         print(input)
-        #         input_scaled = scaler_f.transform(input)
-        #         print(i, j)
-        #         self.cr_anl_txt.append(str(i) + ' ' + str(j))
-        #         res = model.predict(input_scaled)
-        #         print(res)
-        #         self.cr_anl_txt.append(str(res))
+        scaler_f = None
+        with open(Crypto_Anl_Dialog.scaler_file, 'rb') as inf:
+            scaler_f = pickle.load(inf)
+        # scaler_f = load(Crypto_Anl_Dialog.scaler_file)
 
+        model = load_model(Crypto_Anl_Dialog.model_file)
+
+        for i in range(Crypto_Anl_Dialog.nr_of_cpu):
+            for j in range(int(Crypto_Anl_Dialog.secs_to_monitor)):
+                input = []
+                for feat in feats_copy:
+                    input.append(self.data[i][feat][j])
+                input = np.array(input).astype(float).reshape(1, -1)
+                print(input)
+                input_scaled = scaler_f.transform(input)
+                print(i, j)
+                self.cr_anl_txt.append(str(i) + ' ' + str(j))
+                res = model.predict(input_scaled)
+                print(res)
+                self.cr_anl_txt.append(str(res))
 
     def update_data(self, input_line, per_cpu):
         #  1.000418172 CPU1                40.462      r205
@@ -1081,7 +1080,7 @@ class HPC_Info:
         value = int(splitted[2])
         hpc = splitted[4]
 
-        for key, hpc_val in self.hpc_codes.items():  # for name, age in dictionary.iteritems():  (for Python 2.x)
+        for key, hpc_val in self.hpc_codes.items():
             if hpc in hpc_val:
                 self.hpc_data[key][cpu].insert(0, value)
 

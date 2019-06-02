@@ -6,130 +6,119 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1547</width>
-    <height>918</height>
+    <width>1091</width>
+    <height>597</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>CPU Monitor</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>107</width>
-      <height>851</height>
-     </rect>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+    <property name="sizeConstraint">
+     <enum>QLayout::SetDefaultConstraint</enum>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout_options">
-     <item>
-      <widget class="QComboBox" name="comboBox_system_info"/>
-     </item>
-     <item>
-      <widget class="QPushButton" name="button_cpu_views">
-       <property name="text">
-        <string>BARS</string>
-       </property>
-       <property name="autoDefault">
-        <bool>false</bool>
-       </property>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab_cpu_perc_plots">
+       <attribute name="title">
+        <string>CPU %</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,4">
+        <item>
+         <layout class="QGridLayout" name="gridLayout_cpu_pbars"/>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_cpu_plots"/>
+        </item>
+       </layout>
       </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton">
-       <property name="text">
-        <string>PushButton</string>
-       </property>
+      <widget class="QWidget" name="tab_extra_info">
+       <attribute name="title">
+        <string>Extra Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_cpu_extra_info"/>
+        </item>
+       </layout>
       </widget>
-     </item>
-     <item>
-      <widget class="QTextEdit" name="textEdit"/>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QFrame" name="frame_cpu_plots">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>10</y>
-      <width>1411</width>
-      <height>851</height>
-     </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <widget class="QWidget" name="verticalLayoutWidget_2">
-     <property name="geometry">
-      <rect>
-       <x>-1</x>
-       <y>-1</y>
-       <width>1411</width>
-       <height>851</height>
-      </rect>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_cpu_plots"/>
-    </widget>
-   </widget>
-   <widget class="QFrame" name="frame_progress_bars">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>10</y>
-      <width>1411</width>
-      <height>851</height>
-     </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <widget class="QWidget" name="verticalLayoutWidget_3">
-     <property name="geometry">
-      <rect>
-       <x>-1</x>
-       <y>-1</y>
-       <width>1411</width>
-       <height>851</height>
-      </rect>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_cpu_progress_bars"/>
-    </widget>
-   </widget>
-   <widget class="QFrame" name="frame_cpu_extra_info">
-    <property name="geometry">
-     <rect>
-      <x>119</x>
-      <y>9</y>
-      <width>1411</width>
-      <height>851</height>
-     </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <widget class="QWidget" name="verticalLayoutWidget_4">
-     <property name="geometry">
-      <rect>
-       <x>-1</x>
-       <y>9</y>
-       <width>1411</width>
-       <height>841</height>
-      </rect>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_cpu_extra_info"/>
-    </widget>
-   </widget>
+      <widget class="QWidget" name="tab_users">
+       <attribute name="title">
+        <string>Users</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_users"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_memory_info">
+       <attribute name="title">
+        <string>Memory Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_memory_info"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_net_info">
+       <attribute name="title">
+        <string>Networks Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_network_info"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_proc_info">
+       <attribute name="title">
+        <string>Processes Info</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_processes_info"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_hpc">
+       <attribute name="title">
+        <string>Hardware Performance Counters</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,4">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_hpc_config"/>
+        </item>
+        <item>
+         <widget class="QScrollArea" name="scrollArea">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>834</width>
+             <height>484</height>
+            </rect>
+           </property>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menuBar">
@@ -137,8 +126,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1547</width>
-     <height>20</height>
+     <width>1091</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menufile">
