@@ -707,6 +707,8 @@ class CPU_Extra_Info:
 
 
 class Users:
+    users_dict = {}
+
     def __init__(self):
         self.header_labels = ['name', 'uid', 'gid', 'home directory', 'shell']
         self.treeview_users_info = QtWidgets.QTreeWidget()
@@ -716,13 +718,41 @@ class Users:
         users = pwd.getpwall()
         for user in users:
             temp_list = [user.pw_name, str(user.pw_uid), str(user.pw_gid), user.pw_dir, user.pw_shell]
-            utils.ProcessTreeWidgetItem(self.treeview_users_info, temp_list)
+            user_row = utils.ProcessTreeWidgetItem(self.treeview_users_info, temp_list)
+            Users.users_dict[user.pw_uid] = user_row
 
     def integrate(self, wrapper):
         wrapper.verticalLayout_users.addWidget(self.treeview_users_info)
 
     def change_info(self, active_widget=False):
-        pass
+        now_users = pwd.getpwall()
+        now_users_dict = {}
+        for user in now_users:
+            now_users_dict[user.pw_uid] = user
+
+        now_users_uids = set(now_users_dict.keys())
+        then_users_uids = set(Users.users_dict.keys())
+
+        # add new users
+        added_users_uids = now_users_uids - then_users_uids
+        for user_id in added_users_uids:
+            added_user = now_users_dict[user_id]
+            temp_list = [added_user.pw_name, str(added_user.pw_uid), str(added_user.pw_gid), added_user.pw_dir,
+                         added_user.pw_shell]
+            user_row = utils.ProcessTreeWidgetItem(self.treeview_users_info, temp_list)
+            Users.users_dict[user.pw_uid] = user_row
+
+        # removed users
+        removed_users_uids = then_users_uids - now_users_uids
+        for user_id in removed_users_uids:
+            current = Users.users_dict[user_id]
+            if current.parent() is not None:
+                current.parent().removeChild(current)
+            else:
+                self.treeview_users_info.takeTopLevelItem(
+                    self.treeview_users_info.indexOfTopLevelItem(current))
+            del Users.users_dict[user_id]
+
 
 
 class Memory_Info:
