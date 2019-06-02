@@ -454,7 +454,7 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
 
 
 class Trace_pid_Dialog(QtWidgets.QDialog):
-    command_bgn = 'perf stat -e branches -e branch-misses -e cache-misses -e cache-references -p '
+    command_bgn = 'perf stat -e branches -e branch-misses -e cache-misses -e cache-references -e instructions -e cycles -p '
     command_end = ' -I 1000 -x ,'
 
     def __init__(self, parent=None, pid=None):
@@ -463,14 +463,33 @@ class Trace_pid_Dialog(QtWidgets.QDialog):
         self.perf_command = Trace_pid_Dialog.command_bgn + str(self.pid) + Trace_pid_Dialog.command_end
         self.perf_handler = None
 
-        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout = QtWidgets.QGridLayout(self)
+
         self.text_edit = QtWidgets.QTextEdit()
         self.text_edit.setReadOnly(True)
 
-        # self.layout.addWidget(self.text_edit)
+        self.data_dict = {'branches': [], 'branch-misses': [], 'cache-references': [], 'cache-misses': [],
+                          'instructions': [], 'cycles': []}
 
-        self.data_dict = {'branches': [], 'branch-misses': [], 'cache-references': [], 'cache-misses': []}
         self.curves_dict = {}
+
+        self.instr_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')},
+                                        title='Instructions Info')
+        self.instr_plot.setXRange(0, 60)
+        self.instr_plot.addLegend()
+        self.curves_dict['instructions'] = self.instr_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0),
+                                                                symbolPen='w', name='instructions')
+        self.curves_dict['cycles'] = self.instr_plot.plot(pen=(200, 200, 200), symbolBrush=(0, 0, 255),
+                                                          symbolPen='w', name='cycles')
+
+        self.ipc_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')},
+                                      title='Instructions Info')
+        self.ipc_plot.setXRange(0, 60)
+        self.ipc_plot.setYRange(0, 100)
+        self.ipc_plot.addLegend()
+        self.ipc_curve = self.ipc_plot.plot(pen=(200, 200, 200), symbolBrush=(255, 0, 0),
+                                            symbolPen='w', name='IPC')
+
         self.branch_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='Branch Info')
         self.branch_plot.setXRange(0, 60)
         self.branch_plot.addLegend()
@@ -487,8 +506,10 @@ class Trace_pid_Dialog(QtWidgets.QDialog):
         self.curves_dict['cache-misses'] = self.caches_plot.plot(pen=(200, 200, 200), symbolBrush=(0, 0, 255),
                                                                  symbolPen='w', name='cache-misses')
 
-        self.layout.addWidget(self.branch_plot)
-        self.layout.addWidget(self.caches_plot)
+        self.layout.addWidget(self.instr_plot, 0, 0)
+        self.layout.addWidget(self.ipc_plot, 0, 1)
+        self.layout.addWidget(self.branch_plot, 1, 0)
+        self.layout.addWidget(self.caches_plot, 1, 1)
 
         self.q = Queue()
 
@@ -534,6 +555,10 @@ class Trace_pid_Dialog(QtWidgets.QDialog):
     def update_plots(self):
         for key, value in self.curves_dict.items():
             value.setData(self.data_dict[key])
+
+        if len(self.data_dict['cycles']) == len(self.data_dict['instructions']):
+            ipcs = [x / y * 100 for x, y in zip(self.data_dict['instructions'], self.data_dict['cycles'])]
+            self.ipc_curve.setData(ipcs)
 
 
 class CPU_Info:
@@ -752,7 +777,6 @@ class Users:
                 self.treeview_users_info.takeTopLevelItem(
                     self.treeview_users_info.indexOfTopLevelItem(current))
             del Users.users_dict[user_id]
-
 
 
 class Memory_Info:
