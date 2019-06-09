@@ -120,7 +120,7 @@ class PlotHPCThread(QtCore.QThread):
 
             x = np.linspace(0, len(value) - 1, num=len(value))
             y = np.array(value)
-            axarr[2].plot(x, y)
+            axarr[2].plot(x, y, marker='o', color='b')
             axarr[2].set_title(seed_title + ' - plot')
 
             plt.savefig(self.log_file_name + '-' + seed_title + '.png')

@@ -332,11 +332,10 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
 
 class Crypto_Anl_Dialog(QtWidgets.QDialog):
-    # scaler_file = './ai/scaler.save'
-    scaler_file = './ai/scaler_pck2.save'
+    scaler_file = './ai/scaler_pck.save'
     feat_file = './ai/sel_nn_features.txt'
-    model_file = './ai/sel_nn_save.h5'
-    secs_to_monitor = '3'
+    model_file = './ai/selected_nn_best.h5'
+    secs_to_monitor = '1'
     nr_of_cpu = psutil.cpu_count()
 
     def __init__(self, parent=None):
@@ -360,7 +359,8 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
         self.data = {}
 
     def start_pushed(self):
-        self.cr_anl_txt.append('Start Analisys...')
+        self.cr_anl_txt.clear()
+        self.cr_anl_txt.append('Start Analysis...')
         self.cr_anl_txt.append('Getting features...')
 
         temp_line = ''
@@ -376,21 +376,21 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
                 temp_feat_dict[feat] = []
             self.data[i] = temp_feat_dict
 
-        self.cr_anl_txt.append(str(feats))
+        if len(feats) % 4 == 1:
+            total_secs_of_anl = len(feats) / 4
+        else:
+            total_secs_of_anl = len(feats) / 4 + 1
 
+        counter = 0
         while feats:
             this_batch = feats[:4]
-            print(this_batch)
             del feats[:4]
             events_str = ''
             for one_feat in this_batch:
                 events_str = events_str + '-e ' + one_feat + ' '
             events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + Crypto_Anl_Dialog.secs_to_monitor + ' ; '
-            self.cr_anl_txt.append(events_str)
-            print(events_str)
 
             self.perf_handler = psutil.Popen(events_str, stderr=PIPE, shell=True)
-
             self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
             self.t.daemon = True  # thread dies with the program
             self.t.start()
@@ -414,28 +414,40 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
                 cnt += 1
                 QtTest.QTest.qWait(1000)
 
-        self.cr_anl_txt.append(str(self.data))
+            counter += 1
+            self.cr_anl_p_bar.setValue(int(counter * 100 / total_secs_of_anl))
+        self.cr_anl_p_bar.setValue(100)
 
         scaler_f = None
         with open(Crypto_Anl_Dialog.scaler_file, 'rb') as inf:
             scaler_f = pickle.load(inf)
-        # scaler_f = load(Crypto_Anl_Dialog.scaler_file)
 
+        found_thread = False
         model = load_model(Crypto_Anl_Dialog.model_file)
-
         for i in range(Crypto_Anl_Dialog.nr_of_cpu):
             for j in range(int(Crypto_Anl_Dialog.secs_to_monitor)):
                 input = []
                 for feat in feats_copy:
                     input.append(self.data[i][feat][j])
                 input = np.array(input).astype(float).reshape(1, -1)
-                print(input)
                 input_scaled = scaler_f.transform(input)
-                print(i, j)
-                self.cr_anl_txt.append(str(i) + ' ' + str(j))
-                res = model.predict(input_scaled)
-                print(res)
-                self.cr_anl_txt.append(str(res))
+                res = model.predict_classes(input_scaled)
+                if res:
+                    found_thread = True
+
+        if found_thread:
+            self.cr_anl_txt.append('Possible threat found!')
+            max_proc = None
+            for proc in psutil.process_iter(attrs=['pid', 'exe', 'cpu_percent']):
+                proc_dict = proc.info
+                if max_proc:
+                    if proc_dict['cpu_percent'] > max_proc['cpu_percent']:
+                        max_proc = proc_dict
+                else:
+                    max_proc = proc_dict
+            self.cr_anl_txt.append(str(max_proc['pid']) + ' ' + max_proc['exe'])
+        else:
+            self.cr_anl_txt.append('No threat found!')
 
     def update_data(self, input_line, per_cpu):
         #  1.000418172 CPU1                40.462      r205
@@ -974,7 +986,7 @@ class Processes_Info:
         now_pids = set()
         for proc in psutil.process_iter(attrs=self.header_labels):
             proc_dict = proc.info
-            proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / Processes_Info.nr_of_cpues
+            # proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / Processes_Info.nr_of_cpues
             proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime('%Y-%m-%d %H:%M:%S')
             proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
             temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
