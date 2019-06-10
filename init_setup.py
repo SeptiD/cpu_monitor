@@ -1,7 +1,6 @@
 from urllib import request
 import csv
 
-
 content = []
 with open('/proc/cpuinfo') as inf:
     content = inf.readlines()
@@ -12,7 +11,7 @@ model = int(content[3].split(':')[1].strip())
 model = format(model, 'X')
 stepping = content[5].split(':')[1].strip()
 
-look_for = vendor_id+'-'+cpu_family+'-'+model
+look_for = vendor_id + '-' + cpu_family + '-' + model
 
 map_file_raw = request.urlopen('https://download.01.org/perfmon/mapfile.csv')
 map_file = (map_file_raw.read().decode('utf-8')).split('\n')
@@ -27,7 +26,8 @@ for line in map_file:
             core_path = row[2]
             break
 
-core_file_raw = request.urlopen('https://download.01.org/perfmon'+core_path)
+core_file_raw = request.urlopen('https://download.01.org/perfmon' + core_path)
+print('https://download.01.org/perfmon' + core_path)
 core_file = core_file_raw.read().decode('utf-8')
 with open('hpc_info.txt', 'w') as otf:
     otf.write(core_file)

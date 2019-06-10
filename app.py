@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow
-from designer_wrapped import UI_Wrapped
+from designer_wrapped import UIWrapped
 import psutil
 from PyQt5 import QtCore
 from argparse import ArgumentParser
@@ -19,7 +19,7 @@ if args.crypto_anl:
     utils_anl.crypto_anl()
 else:
     app = QApplication(sys.argv)
-    ex = UI_Wrapped()
+    ex = UIWrapped()
     w = QMainWindow()
     ex.setupUi(w)
 

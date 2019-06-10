@@ -141,4 +141,3 @@ def crypto_anl():
         print(str(max_proc['pid']) + ' ' + max_proc['exe'])
     else:
         print('No threat found!')
-

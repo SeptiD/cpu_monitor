@@ -37,7 +37,7 @@ class TimeAxisItem(pg.AxisItem):
         return [datetime.utcfromtimestamp(value).strftime('%M:%S') for value in values]
 
 
-class Hpc_Dialog(QtWidgets.QDialog):
+class HPCDialog(QtWidgets.QDialog):
     out_folder = 'hpc_record_data'
     nr_of_registers = 4
 
@@ -71,7 +71,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
         self.closed_request = True
         if self.perf_handler:
             self.perf_handler.kill()
-        super(Hpc_Dialog, self).closeEvent(event)
+        super(HPCDialog, self).closeEvent(event)
 
     def init(self):
 
@@ -154,9 +154,9 @@ class Hpc_Dialog(QtWidgets.QDialog):
         return str((hours * 3600) + (minutes * 60) + seconds)
 
     def start_clicked(self):
-        if not os.path.exists(Hpc_Dialog.out_folder):
-            os.mkdir(Hpc_Dialog.out_folder)
-        this_record_folder = Hpc_Dialog.out_folder + '/' + str(
+        if not os.path.exists(HPCDialog.out_folder):
+            os.mkdir(HPCDialog.out_folder)
+        this_record_folder = HPCDialog.out_folder + '/' + str(
             datetime.utcfromtimestamp(time()).strftime('%Y-%m-%d-%H-%M-%S')) + '-hpc_record'
 
         os.mkdir(this_record_folder)
@@ -189,7 +189,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
 
             events_str = ''
             just_events = ''
-            for idx in range(Hpc_Dialog.nr_of_registers):
+            for idx in range(HPCDialog.nr_of_registers):
                 temp_name = line.text(self.hpc_dlg_header_labels.index('C' + str(idx)))
                 if temp_name:
                     events_str = events_str + '-e ' + self.get_code(temp_name) + ' '
@@ -331,7 +331,7 @@ class Hpc_Dialog(QtWidgets.QDialog):
             self.hpc_dlg_details_text.append(self.hpc_dlg_cnt[text]['PublicDescription'])
 
 
-class Crypto_Anl_Dialog(QtWidgets.QDialog):
+class CryptoAnalysisDialog(QtWidgets.QDialog):
     scaler_file = './ai/scaler_pck.save'
     feat_file = './ai/sel_nn_features.txt'
     model_file = './ai/selected_nn_best.h5'
@@ -356,6 +356,8 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
         self.layout.addWidget(self.cr_anl_txt)
 
         self.q = Queue()
+        self.perf_handler = None
+        self.t = None
         self.data = {}
 
     def start_pushed(self):
@@ -363,14 +365,13 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
         self.cr_anl_txt.append('Start Analysis...')
         self.cr_anl_txt.append('Getting features...')
 
-        temp_line = ''
-        with open(Crypto_Anl_Dialog.feat_file) as inf:
+        with open(CryptoAnalysisDialog.feat_file) as inf:
             temp_line = inf.readline().strip()
 
         feats = [x.strip() for x in temp_line.split()]
         feats_copy = list.copy(feats)
 
-        for i in range(Crypto_Anl_Dialog.nr_of_cpu):
+        for i in range(CryptoAnalysisDialog.nr_of_cpu):
             temp_feat_dict = {}
             for feat in feats:
                 temp_feat_dict[feat] = []
@@ -388,7 +389,7 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
             events_str = ''
             for one_feat in this_batch:
                 events_str = events_str + '-e ' + one_feat + ' '
-            events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + Crypto_Anl_Dialog.secs_to_monitor + ' ; '
+            events_str = 'perf stat ' + events_str + '-I 1000 -a -A -x , sleep ' + CryptoAnalysisDialog.secs_to_monitor + ' ; '
 
             self.perf_handler = psutil.Popen(events_str, stderr=PIPE, shell=True)
             self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
@@ -408,7 +409,7 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
                     except Empty:
                         break
 
-                if cnt >= int(Crypto_Anl_Dialog.secs_to_monitor):
+                if cnt >= int(CryptoAnalysisDialog.secs_to_monitor):
                     self.perf_handler.kill()
                     break
                 cnt += 1
@@ -418,19 +419,18 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
             self.cr_anl_p_bar.setValue(int(counter * 100 / total_secs_of_anl))
         self.cr_anl_p_bar.setValue(100)
 
-        scaler_f = None
-        with open(Crypto_Anl_Dialog.scaler_file, 'rb') as inf:
+        with open(CryptoAnalysisDialog.scaler_file, 'rb') as inf:
             scaler_f = pickle.load(inf)
 
         found_thread = False
-        model = load_model(Crypto_Anl_Dialog.model_file)
-        for i in range(Crypto_Anl_Dialog.nr_of_cpu):
-            for j in range(int(Crypto_Anl_Dialog.secs_to_monitor)):
-                input = []
+        model = load_model(CryptoAnalysisDialog.model_file)
+        for i in range(CryptoAnalysisDialog.nr_of_cpu):
+            for j in range(int(CryptoAnalysisDialog.secs_to_monitor)):
+                model_input = []
                 for feat in feats_copy:
-                    input.append(self.data[i][feat][j])
-                input = np.array(input).astype(float).reshape(1, -1)
-                input_scaled = scaler_f.transform(input)
+                    model_input.append(self.data[i][feat][j])
+                model_input = np.array(model_input).astype(float).reshape(1, -1)
+                input_scaled = scaler_f.transform(model_input)
                 res = model.predict_classes(input_scaled)
                 if res:
                     found_thread = True
@@ -449,7 +449,8 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
         else:
             self.cr_anl_txt.append('No threat found!')
 
-    def update_data(self, input_line, per_cpu):
+    @staticmethod
+    def update_data(input_line, per_cpu):
         #  1.000418172 CPU1                40.462      r205
         #  1.000472956,CPU5,25933,,r105,1000277655,100,00,,
         input_line = input_line.decode('utf-8').strip()
@@ -465,14 +466,14 @@ class Crypto_Anl_Dialog(QtWidgets.QDialog):
             return value, hpc
 
 
-class Trace_pid_Dialog(QtWidgets.QDialog):
+class TracePidDialog(QtWidgets.QDialog):
     command_bgn = 'perf stat -e branches -e branch-misses -e cache-misses -e cache-references -e instructions -e cycles -p '
     command_end = ' -I 1000 -x ,'
 
     def __init__(self, parent=None, pid=None):
         super(QtWidgets.QDialog, self).__init__(parent)
         self.pid = pid
-        self.perf_command = Trace_pid_Dialog.command_bgn + str(self.pid) + Trace_pid_Dialog.command_end
+        self.perf_command = TracePidDialog.command_bgn + str(self.pid) + TracePidDialog.command_end
         self.perf_handler = None
 
         self.layout = QtWidgets.QGridLayout(self)
@@ -524,7 +525,7 @@ class Trace_pid_Dialog(QtWidgets.QDialog):
         self.layout.addWidget(self.caches_plot, 1, 1)
 
         self.q = Queue()
-
+        self.t = None
         self.init_tracing()
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.read_from_perf)
@@ -532,7 +533,6 @@ class Trace_pid_Dialog(QtWidgets.QDialog):
 
     def init_tracing(self):
         self.perf_handler = psutil.Popen(self.perf_command, stderr=PIPE, shell=True)
-
         self.t = Thread(target=enqueue_output, args=(self.perf_handler.stderr, self.q))
         self.t.daemon = True  # thread dies with the program
         self.t.start()
@@ -573,7 +573,7 @@ class Trace_pid_Dialog(QtWidgets.QDialog):
             self.ipc_curve.setData(ipcs)
 
 
-class CPU_Info:
+class CPUInfo:
     nr_of_cpues = psutil.cpu_count()
 
     def __init__(self):
@@ -584,7 +584,7 @@ class CPU_Info:
         self.cpu_p_bars_list = []
         self.qlabels_pbars = []
 
-        for cpu in range(CPU_Info.nr_of_cpues):
+        for cpu in range(CPUInfo.nr_of_cpues):
             # setup real-time plots
             temp_plot = pg.PlotWidget(axisItems={'bottom': TimeAxisItem(orientation='bottom')}, title='CPU ' + str(cpu))
             temp_plot.setYRange(0, 100)
@@ -629,11 +629,11 @@ class CPU_Info:
             wrapper.gridLayout_cpu_pbars.addWidget(temp_qlabel, 2, col)
             col += 1
 
-        newfont = QtGui.QFont()
-        newfont.setPointSize(8)
-        for col in range(CPU_Info.nr_of_cpues):
+        new_font = QtGui.QFont()
+        new_font.setPointSize(8)
+        for col in range(CPUInfo.nr_of_cpues):
             temp = QtWidgets.QLabel('CPU' + str(col))
-            temp.setFont(newfont)
+            temp.setFont(new_font)
             wrapper.gridLayout_cpu_pbars.addWidget(temp, 0, col)
 
     def change_info(self, active_widget=False):
@@ -647,14 +647,15 @@ class CPU_Info:
                 self.qlabels_pbars[cpu_index].setText(str(cpu_perc_list[cpu_index]))
         return self.create_json(cpu_perc_list)
 
-    def create_json(self, cpu_perc_list):
+    @staticmethod
+    def create_json(cpu_perc_list):
         temp_json = {}
         for cpu_idx in range(len(cpu_perc_list)):
             temp_json[cpu_idx] = str(cpu_perc_list[cpu_idx])
         return {'cpu_perc': temp_json}
 
 
-class CPU_Extra_Info:
+class CPUExtraInfo:
     cpu_extra_info_dict = {'ctx_sw': 0, 'intr': 0, 'sw_intr': 0}
 
     def __init__(self):
@@ -695,25 +696,25 @@ class CPU_Extra_Info:
             wrapper.verticalLayout_cpu_extra_info.addWidget(elem)
 
     def change_info(self, active_widget=False):
-        info_touple = psutil.cpu_stats()
+        info_tuple = psutil.cpu_stats()
         temperature_tuples = psutil.sensors_temperatures()['coretemp']
         battery_tuple = psutil.sensors_battery()
 
         if active_widget:
-            self.label_ctx_switches.setText("Context Switches: " + str(info_touple.ctx_switches))
+            self.label_ctx_switches.setText("Context Switches: " + str(info_tuple.ctx_switches))
             self.label_ctx_sw_per_sec.setText \
                 ("Context Switches per sec: " +
-                 str(info_touple.ctx_switches - CPU_Extra_Info.cpu_extra_info_dict['ctx_sw']))
+                 str(info_tuple.ctx_switches - CPUExtraInfo.cpu_extra_info_dict['ctx_sw']))
 
-            self.label_interrupts.setText("Interrupts: " + str(info_touple.interrupts))
+            self.label_interrupts.setText("Interrupts: " + str(info_tuple.interrupts))
             self.label_intr_per_sec.setText \
                 ("Interrupts per sec:" +
-                 str(info_touple.interrupts - CPU_Extra_Info.cpu_extra_info_dict['intr']))
+                 str(info_tuple.interrupts - CPUExtraInfo.cpu_extra_info_dict['intr']))
 
-            self.label_soft_interrupts.setText("Software Interrupts: " + str(info_touple.soft_interrupts))
+            self.label_soft_interrupts.setText("Software Interrupts: " + str(info_tuple.soft_interrupts))
             self.label_sw_intr_per_sec.setText \
                 ("Software Interrupts per sec: " +
-                 str(info_touple.soft_interrupts - CPU_Extra_Info.cpu_extra_info_dict['sw_intr']))
+                 str(info_tuple.soft_interrupts - CPUExtraInfo.cpu_extra_info_dict['sw_intr']))
 
             self.up_time = self.up_time + timedelta(0, 1)
             self.label_up_time.setText("Up Time: " + str(self.up_time))
@@ -727,15 +728,16 @@ class CPU_Extra_Info:
                 self.just_temperature_list[index].setFormat(
                     'Core ' + str(index) + ' temperature: ' + str(temperature_tuples[index].current) + '°C')
 
-        CPU_Extra_Info.cpu_extra_info_dict['ctx_sw'] = info_touple.ctx_switches
-        CPU_Extra_Info.cpu_extra_info_dict['intr'] = info_touple.interrupts
-        CPU_Extra_Info.cpu_extra_info_dict['sw_intr'] = info_touple.soft_interrupts
+        CPUExtraInfo.cpu_extra_info_dict['ctx_sw'] = info_tuple.ctx_switches
+        CPUExtraInfo.cpu_extra_info_dict['intr'] = info_tuple.interrupts
+        CPUExtraInfo.cpu_extra_info_dict['sw_intr'] = info_tuple.soft_interrupts
 
-        return self.create_json(info_touple, temperature_tuples, battery_tuple)
+        return self.create_json(info_tuple, temperature_tuples, battery_tuple)
 
-    def create_json(self, info_touple, temperature_tuples, battery_tuple):
-        temp_json = {'ctx_switches': info_touple.ctx_switches, 'intr': info_touple.interrupts,
-                     'sw_intr': info_touple.soft_interrupts, 'battery': round(battery_tuple.percent, 1)}
+    @staticmethod
+    def create_json(info_tuple, temperature_tuples, battery_tuple):
+        temp_json = {'ctx_switches': info_tuple.ctx_switches, 'intr': info_tuple.interrupts,
+                     'sw_intr': info_tuple.soft_interrupts, 'battery': round(battery_tuple.percent, 1)}
 
         for index in range(len(temperature_tuples)):
             temp_json['temperature' + str(index)] = temperature_tuples[index].current
@@ -791,14 +793,14 @@ class Users:
             del Users.users_dict[user_id]
 
 
-class Memory_Info:
+class MemoryInfo:
     def __init__(self):
         self.header_labels = ['device', 'mountpoint', 'fstype', 'opts']
         self.info_list = []
         self.disk_partitions = []
         self.disk_rows = {}
 
-        self.p_bar_diskspace = QtWidgets.QProgressBar()
+        self.p_bar_disk_space = QtWidgets.QProgressBar()
         self.label_disk_usage = QtWidgets.QLabel()
 
         self.treeview_disk_part_info = QtWidgets.QTreeWidget()
@@ -809,7 +811,7 @@ class Memory_Info:
     def integrate(self, wrapper):
         wrapper.verticalLayout_memory_info.addWidget(self.treeview_disk_part_info)
         wrapper.verticalLayout_memory_info.addWidget(self.label_disk_usage)
-        wrapper.verticalLayout_memory_info.addWidget(self.p_bar_diskspace)
+        wrapper.verticalLayout_memory_info.addWidget(self.p_bar_disk_space)
 
     def change_info(self, active_widget=False):
         self.set_disk_usage()
@@ -844,14 +846,14 @@ class Memory_Info:
     def set_disk_usage(self):
         current_disk_usage = psutil.disk_usage('/')
         total, used, free, percent = current_disk_usage
-        self.p_bar_diskspace.setValue(int(percent))
+        self.p_bar_disk_space.setValue(int(percent))
         self.label_disk_usage.setText(
             'Disk usage: total=' + str(round(total / (1024 * 1024 * 1024), 2)) + ' GB' +
             '   used=' + str(round(used / (1024 * 1024 * 1024), 2)) + ' GB' +
             '   free=' + str(round(free / (1024 * 1024 * 1024), 2)) + ' GB')
 
 
-class Network_Info:
+class NetworkInfo:
     def __init__(self):
         self.net_con_headers = ['Fd', 'PID', 'IP', 'Port', 'Status']
         self.net_con_rows = {}
@@ -882,12 +884,7 @@ class Network_Info:
             # example:
             # sconn(fd=97, family=<AddressFamily.AF_INET: 2>, type=<SocketKind.SOCK_STREAM: 1>,
             # laddr=addr(ip='0.0.0.0', port=57621), raddr=(), status='LISTEN', pid=13056)
-            one_net_con = []
-            one_net_con.append(str(elem.fd))
-            one_net_con.append(str(elem.pid))
-            one_net_con.append(str(elem.laddr.ip))
-            one_net_con.append(str(elem.laddr.port))
-            one_net_con.append(elem.status)
+            one_net_con = [str(elem.fd), str(elem.pid), str(elem.laddr.ip), str(elem.laddr.port), elem.status]
 
             key = elem.pid
             if key in self.net_con_rows:
@@ -957,7 +954,7 @@ class Network_Info:
                         self.treeview_net_io_info.indexOfTopLevelItem(current))
 
 
-class Processes_Info:
+class ProcessesInfo:
     nr_of_cpues = psutil.cpu_count()
 
     def __init__(self):
@@ -986,7 +983,7 @@ class Processes_Info:
         now_pids = set()
         for proc in psutil.process_iter(attrs=self.header_labels):
             proc_dict = proc.info
-            # proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / Processes_Info.nr_of_cpues
+            # proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / ProcessesInfo.nr_of_cpues
             proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime('%Y-%m-%d %H:%M:%S')
             proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
             temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
@@ -1027,11 +1024,11 @@ class Processes_Info:
     def trace_proc(self):
         my_item = self.treeview_processes_info.currentItem()
         pid = int(my_item.text(0))
-        dialog = Trace_pid_Dialog(pid=pid)
+        dialog = TracePidDialog(pid=pid)
         dialog.exec()
 
 
-class HPC_Info:
+class HPCInfo:
     cpu_count = psutil.cpu_count()
 
     def __init__(self):
@@ -1074,7 +1071,7 @@ class HPC_Info:
             temp_data_list = []
             temp_plots_list = []
             temp_curves_list = []
-            for idx2 in range(HPC_Info.cpu_count):
+            for idx2 in range(HPCInfo.cpu_count):
                 temp_data_list.append([])
 
                 title = 'CPU ' + str(idx2) + ' - ' + self.hpc_codes[idx]
@@ -1126,7 +1123,7 @@ class HPC_Info:
             self.t.start()
 
     def integrate(self, wrapper):
-        for i in range(HPC_Info.cpu_count):
+        for i in range(HPCInfo.cpu_count):
             self.gridLayout_hpc_info.setRowMinimumHeight(i, 143)
         wrapper.scrollArea.setWidgetResizable(True)
         for column in range(len(self.hpc_plots)):
@@ -1178,7 +1175,7 @@ class HPC_Info:
 
     def update_curves(self):
         for idx in range(4):
-            for idx2 in range(HPC_Info.cpu_count):
+            for idx2 in range(HPCInfo.cpu_count):
                 self.hpc_curves[idx][idx2].setData(y=self.hpc_data[idx][idx2])
 
     def got_hpc(self, hpc_cnts):
@@ -1220,7 +1217,7 @@ class HPC_Info:
                 smth_changed = True
                 self.hpc_codes[new_elem_key] = new_elem_val
                 self.hpc_data[new_elem_key] = []
-                for idx in range(HPC_Info.cpu_count):
+                for idx in range(HPCInfo.cpu_count):
                     self.hpc_data[new_elem_key].append([])
 
         if smth_changed:
@@ -1230,7 +1227,7 @@ class HPC_Info:
         if self.hpc_counters:
             if self.perf_handler:
                 self.perf_handler.kill()
-            dialog = Hpc_Dialog(hpc_cnt=self.hpc_counters)
+            dialog = HPCDialog(hpc_cnt=self.hpc_counters)
             dialog.exec()
         else:
             msg = QtWidgets.QMessageBox()
@@ -1242,24 +1239,26 @@ class HPC_Info:
     def crypto_anl(self):
         if self.perf_handler:
             self.perf_handler.kill()
-        dialog = Crypto_Anl_Dialog()
+        dialog = CryptoAnalysisDialog()
         dialog.exec()
 
 
-class UI_Wrapped(Ui_MainWindow):
+class UIWrapped(Ui_MainWindow):
+
+    def __init__(self):
+        self.elements = {}
+        self.f = open('info_file.txt', 'a')
 
     def setupUi(self, MainWindow):
         super().setupUi(MainWindow)
-        self.f = open('info_file.txt', 'a')
 
-        self.elements = {}
-        self.elements[0] = CPU_Info()
-        self.elements[1] = CPU_Extra_Info()
+        self.elements[0] = CPUInfo()
+        self.elements[1] = CPUExtraInfo()
         self.elements[2] = Users()
-        self.elements[3] = Memory_Info()
-        self.elements[4] = Network_Info()
-        self.elements[5] = Processes_Info()
-        self.elements[6] = HPC_Info()
+        self.elements[3] = MemoryInfo()
+        self.elements[4] = NetworkInfo()
+        self.elements[5] = ProcessesInfo()
+        self.elements[6] = HPCInfo()
 
         self.integrate_all()
 
@@ -1275,7 +1274,6 @@ class UI_Wrapped(Ui_MainWindow):
         info_json = {'t': int(time())}
         tabs = []
         for key, value in self.elements.items():
-            json_received = None
             if key != current_index:
                 json_received = value.change_info()
             else:
