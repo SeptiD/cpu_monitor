@@ -1,12 +1,13 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import json
 import matplotlib
+
 matplotlib.use('Agg')
 from matplotlib import pyplot
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+import json
 
 class CustomProgressBar(QtWidgets.QProgressBar):
     th1 = 40
@@ -77,14 +78,37 @@ class GetHPCInfoThread(QtCore.QThread):
         result = self.get_info_from_hpc_file()
         self.finished_signal.emit(result)
 
+class WriteHPCJobToFile(QtCore.QThread):
+    finished_signal = QtCore.pyqtSignal(object)
+
+    def __init__(self, file_path, job_data):
+        QtCore.QThread.__init__(self)
+        self.file_path = file_path
+        self.job_data = job_data
+
+    def __del__(self):
+        self.wait()
+
+    def write_job_to_file(self):
+        to_write = ''
+        for job in self.job_data:
+            to_write = to_write + json.dumps(job) + '\n'
+        with open(self.file_path, 'w') as otf:
+            otf.write(to_write)
+
+
+    def run(self):
+        self.write_job_to_file()
+        # self.finished_signal.emit()
 
 class PlotHPCThread(QtCore.QThread):
     finished_signal = QtCore.pyqtSignal(object)
 
-    def __init__(self, log_file_name, hpc_cnts):
+    def __init__(self, log_file_name, hpc_cnts, sample_size_ms):
         QtCore.QThread.__init__(self)
         self.log_file_name = log_file_name
         self.hpc_cnts = hpc_cnts
+        self.sample_size_sec = int(sample_size_ms) / 1000
         self.data = {}
 
     def __del__(self):
@@ -118,7 +142,8 @@ class PlotHPCThread(QtCore.QThread):
             axarr[1].set_title(seed_title + ' - boxplot')
             axarr[1].yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
 
-            x = np.linspace(0, len(value) - 1, num=len(value))
+            # x = np.linspace(0, len(value) - 1, num=len(value))
+            x = np.arange(0, len(value)) * self.sample_size_sec
             y = np.array(value)
             axarr[2].plot(x, y, marker='o', color='b')
             axarr[2].set_title(seed_title + ' - plot')
