@@ -18,6 +18,7 @@ import platform
 from keras.models import load_model
 import numpy as np
 import pickle
+from toggle_button import QSlideSwitch
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -1022,6 +1023,13 @@ class ProcessesInfo:
     nr_of_cpues = psutil.cpu_count()
 
     def __init__(self):
+        self.slider = QSlideSwitch()
+        self.slider.setCheckable(True)
+        self.slider_label = QtWidgets.QLabel('Tree mode:')
+        self.slider_option_layout = QtWidgets.QHBoxLayout()
+        self.slider_option_layout.addWidget(self.slider_label)
+        self.slider_option_layout.addWidget(self.slider)
+
         self.header_labels = ['pid', 'ppid', 'username', 'exe', 'create_time', 'status', 'num_threads', 'cpu_percent',
                               'cpu_num', 'memory_info']
         self.treeview_processes_info = QtWidgets.QTreeWidget()
@@ -1029,42 +1037,109 @@ class ProcessesInfo:
         self.treeview_processes_info.setSortingEnabled(True)
         self.treeview_processes_info.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
 
+        self.treeview_processes_info_ppid = QtWidgets.QTreeWidget()
+        self.treeview_processes_info_ppid.setHeaderLabels(self.header_labels)
+        self.treeview_processes_info_ppid.setSortingEnabled(False)
+        self.treeview_processes_info_ppid.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
+
         self.trace_process_action = QtWidgets.QAction("Trace process", None)
         self.trace_process_action.triggered.connect(self.trace_proc)
         self.treeview_processes_info.addAction(self.trace_process_action)
+
+        self.trace_process_action_ppid = QtWidgets.QAction("Trace process", None)
+        self.trace_process_action_ppid.triggered.connect(self.trace_proc_ppid)
+        self.treeview_processes_info_ppid.addAction(self.trace_process_action_ppid)
 
         self.kill_process_action = QtWidgets.QAction("Kill process", None)
         self.kill_process_action.triggered.connect(self.kill_proc)
         self.treeview_processes_info.addAction(self.kill_process_action)
 
+        self.kill_process_action_ppid = QtWidgets.QAction("Kill process", None)
+        self.kill_process_action_ppid.triggered.connect(self.kill_proc_ppid)
+        self.treeview_processes_info_ppid.addAction(self.kill_process_action_ppid)
+
         self.processes_rows = {}
+        self.processes_rows_ppid = {}
         self.change_info(active_widget=True)
+        self.root_nodes = set()
+
 
     def integrate(self, wrapper):
+        wrapper.verticalLayout_processes_info.addLayout(self.slider_option_layout)
         wrapper.verticalLayout_processes_info.addWidget(self.treeview_processes_info)
+        wrapper.verticalLayout_processes_info.addWidget(self.treeview_processes_info_ppid)
+        self.treeview_processes_info_ppid.setVisible(False)
 
     def change_info(self, active_widget=False):
+        if self.slider.state:
+            self.treeview_processes_info.setVisible(True)
+            self.treeview_processes_info_ppid.setVisible(False)
+
+            now_pids = set()
+            for proc in psutil.process_iter(attrs=self.header_labels):
+                proc_dict = proc.info
+                # proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / ProcessesInfo.nr_of_cpues
+                proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime(
+                    '%Y-%m-%d %H:%M:%S')
+                proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
+                temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
+
+                if active_widget:
+                    if proc_dict['pid'] not in self.processes_rows.keys():
+                        temp_widget_item = utils.ProcessTreeWidgetItem(self.treeview_processes_info, temp_list)
+                        self.processes_rows[proc_dict['pid']] = temp_widget_item
+                    else:
+                        temp_widget_item = self.processes_rows[proc_dict['pid']]
+                        for idx in range(len(temp_list)):
+                            temp_widget_item.setText(idx, temp_list[idx])
+
+                now_pids.add(proc_dict['pid'])
+
+            if active_widget:
+                for key, current in self.processes_rows.items():
+                    if key not in now_pids:
+                        if current.parent() is not None:
+                            current.parent().removeChild(current)
+                        else:
+                            self.treeview_processes_info.takeTopLevelItem(
+                                self.treeview_processes_info.indexOfTopLevelItem(current))
+        else:
+            self.create_ppid_tree(active_widget)
+
+    def create_ppid_tree(self, active_widget):
+        self.treeview_processes_info.setVisible(False)
+        self.treeview_processes_info_ppid.setVisible(True)
+
         now_pids = set()
+
         for proc in psutil.process_iter(attrs=self.header_labels):
             proc_dict = proc.info
-            # proc_dict['cpu_percent'] = proc_dict['cpu_percent']  # / ProcessesInfo.nr_of_cpues
-            proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime('%Y-%m-%d %H:%M:%S')
+            proc_dict['create_time'] = datetime.utcfromtimestamp(proc_dict['create_time']).strftime(
+                '%Y-%m-%d %H:%M:%S')
             proc_dict['memory_info'] = round(proc_dict['memory_info'].vms / (1024 * 1024), 2)
             temp_list = [str(proc_dict[elem]) for elem in self.header_labels]
 
             if active_widget:
-                if proc_dict['pid'] not in self.processes_rows.keys():
-                    temp_widget_item = utils.ProcessTreeWidgetItem(self.treeview_processes_info, temp_list)
-                    self.processes_rows[proc_dict['pid']] = temp_widget_item
+                if proc_dict['pid'] not in self.processes_rows_ppid.keys():
+                    temp_widget_item = utils.ProcessTreeWidgetItem(temp_list)
+
+                    if proc_dict['ppid'] != 0:
+                        self.processes_rows_ppid[proc_dict['ppid']].addChild(temp_widget_item)
+                    else:
+                        if proc_dict['pid'] not in self.root_nodes:
+                            self.root_nodes.add(proc_dict['pid'])
+                    self.processes_rows_ppid[proc_dict['pid']] = temp_widget_item
                 else:
-                    temp_widget_item = self.processes_rows[proc_dict['pid']]
+                    temp_widget_item = self.processes_rows_ppid[proc_dict['pid']]
                     for idx in range(len(temp_list)):
                         temp_widget_item.setText(idx, temp_list[idx])
-
             now_pids.add(proc_dict['pid'])
 
+        for root_node in self.root_nodes:
+            self.treeview_processes_info_ppid.addTopLevelItem(self.processes_rows_ppid[root_node])
+
         if active_widget:
-            for key, current in self.processes_rows.items():
+            for key, current in self.processes_rows_ppid.items():
                 if key not in now_pids:
                     if current.parent() is not None:
                         current.parent().removeChild(current)
@@ -1091,6 +1166,24 @@ class ProcessesInfo:
         dialog = TracePidDialog(pid=pid)
         dialog.exec()
 
+    def kill_proc_ppid(self):
+        my_item = self.treeview_processes_info_ppid.currentItem()
+        pid = int(my_item.text(0))
+        try:
+            p = psutil.Process(pid)
+            p.terminate()
+        except psutil.AccessDenied:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText('This process cannot be terminated!')
+            msg.setWindowTitle('Process Information')
+            msg.exec()
+
+    def trace_proc_ppid(self):
+        my_item = self.treeview_processes_info_ppid.currentItem()
+        pid = int(my_item.text(0))
+        dialog = TracePidDialog(pid=pid)
+        dialog.exec()
 
 class HPCInfo:
     cpu_count = psutil.cpu_count()
