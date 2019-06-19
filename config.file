@@ -9,11 +9,11 @@ pip install pyqtgraph
 
 sudo apt install gcc
 pip install psutil
-
+sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
 To make this setting permanent, edit /etc/sysctl.conf too, e.g.:
 
 	kernel.perf_event_paranoid = -1
-sudo sh -c 'echo kernel.perf_event_paranoid=1 > /etc/sysctl.d/local.conf'
+sudo sh -c 'echo kernel.perf_event_paranoid=-1 > /etc/sysctl.d/local.conf'
 
 export TF_CPP_MIN_LOG_LEVEL=2
 https://stackoverflow.com/questions/47068709/your-cpu-supports-instructions-that-this-tensorflow-binary-was-not-compiled-to-u

@@ -1025,10 +1025,13 @@ class ProcessesInfo:
     def __init__(self):
         self.slider = QSlideSwitch()
         self.slider.setCheckable(True)
+        self.slider.setMaximumHeight(100)
+        self.slider.setMaximumWidth(100)
         self.slider_label = QtWidgets.QLabel('Tree mode:')
         self.slider_option_layout = QtWidgets.QHBoxLayout()
         self.slider_option_layout.addWidget(self.slider_label)
         self.slider_option_layout.addWidget(self.slider)
+
 
         self.header_labels = ['pid', 'ppid', 'username', 'exe', 'create_time', 'status', 'num_threads', 'cpu_percent',
                               'cpu_num', 'memory_info']
